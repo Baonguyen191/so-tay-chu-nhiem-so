@@ -30,8 +30,8 @@ function step1() {
              <input type="file" id="impFile" accept=".xlsx,.csv" class="sr">
              <div class="sub" id="fileName">${st.file ? esc(st.file.name) : "Chưa chọn file"}</div></div>`}
       <div class="sub">Chưa có danh sách? Tải file mẫu:
-        <a href="/mau/mau-nhap-hoc-sinh.xlsx" download>Excel (.xlsx)</a> ·
-        <a href="/mau/mau-nhap-hoc-sinh.csv" download>CSV</a></div>
+        <a href="mau/mau-nhap-hoc-sinh.xlsx" download>Excel (.xlsx)</a> ·
+        <a href="mau/mau-nhap-hoc-sinh.csv" download>CSV</a></div>
       <p class="err" id="impErr" role="alert"></p>
     </div>
     <div class="dlg-f"><button class="btn" type="button" data-close>Hủy</button><button class="btn primary" id="impNext">Xem trước</button></div>

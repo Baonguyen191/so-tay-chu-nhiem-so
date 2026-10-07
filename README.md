@@ -4,6 +4,19 @@
 
 Sản phẩm dự thi "Trường học số – đổi mới sáng tạo" của xã Tân Minh.
 
+## Hai phiên bản
+
+| | **Bản giáo viên** (dùng ngay) | **Bản nhà trường** (có máy chủ) |
+|---|---|---|
+| Địa chỉ | **https://baonguyen191.github.io/so-tay-chu-nhiem-so/** | Tự chạy trên máy của trường (mục 3 trở đi) |
+| Tài khoản | Không cần. Mở link là dùng. | Đăng nhập; Ban giám hiệu tạo tài khoản cho giáo viên |
+| Dữ liệu nằm ở đâu | Trong trình duyệt của thiết bị đang dùng. Không gửi đi đâu. | Trong file CSDL trên máy chủ của trường |
+| Dùng trên nhiều máy | Tải file sao lưu, rồi khôi phục trên máy kia (mục **Lớp → Sao lưu**) | Tự đồng bộ: đăng nhập ở máy nào cũng thấy |
+
+**Lưu ý với bản giáo viên:** xóa lịch sử duyệt web, dùng chế độ ẩn danh, hoặc mất máy đều làm **mất dữ liệu**. Hãy bấm **Lớp → Tải file sao lưu** mỗi tuần. Trên iPhone, nên mở bằng Safari rồi chọn **Thêm vào MH chính**.
+
+Mã nguồn bản giáo viên nằm ở thư mục `pages/`. Mỗi lần đẩy mã lên nhánh `main`, GitHub Actions tự kiểm thử, ghép bản (`npm run build:pages`) và đưa lên GitHub Pages.
+
 ## Mục lục
 
 1. [Ứng dụng làm được gì](#1-ứng-dụng-làm-được-gì)

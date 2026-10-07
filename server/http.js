@@ -1,4 +1,5 @@
 // Tiện ích nhỏ cho xử lý yêu cầu HTTP.
+import { InputError } from "../public/js/shared/import-core.js";
 
 export class HttpError extends Error {
   constructor(status, message, extra = {}) {
@@ -45,6 +46,7 @@ export function errorHandler(err, req, res, _next) {
   if (err instanceof HttpError) {
     return res.status(err.status).json({ error: err.message, ...err.extra });
   }
+  if (err instanceof InputError) return res.status(400).json({ error: err.message });
   if (err?.type === "entity.parse.failed") return res.status(400).json({ error: "Dữ liệu gửi lên không đúng định dạng" });
   if (err?.type === "entity.too.large") return res.status(413).json({ error: "Dữ liệu gửi lên quá lớn" });
   console.error(err);
