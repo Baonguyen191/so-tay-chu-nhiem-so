@@ -7,6 +7,11 @@ import { ROOT } from "./config.js";
 import { csrfProtection, loadSession } from "./auth.js";
 import { errorHandler, notFound } from "./http.js";
 import { authRoutes } from "./routes/auth.js";
+import { adminRoutes } from "./routes/admin.js";
+import { classRoutes } from "./routes/classes.js";
+import { studentRoutes } from "./routes/students.js";
+import { recordRoutes } from "./routes/records.js";
+import { templateCsv, templateXlsx } from "./lib/template.js";
 
 /**
  * @param {object} opts
@@ -53,8 +58,20 @@ export function createApp({ db, dbFile = null, now = Date.now, bcryptRounds = 10
     next();
   });
   api.use(authRoutes());
+  api.use(adminRoutes());
+  api.use(classRoutes());
+  api.use(studentRoutes());
+  api.use(recordRoutes());
   api.use(() => { throw notFound("Không có chức năng này"); });
   app.use("/api", api);
+
+  // File mẫu nhập danh sách học sinh (không chứa dữ liệu, tải tự do).
+  app.get("/mau/mau-nhap-hoc-sinh.xlsx", async (_req, res) => {
+    res.attachment("mau-nhap-hoc-sinh.xlsx").type("xlsx").send(await templateXlsx());
+  });
+  app.get("/mau/mau-nhap-hoc-sinh.csv", (_req, res) => {
+    res.attachment("mau-nhap-hoc-sinh.csv").type("text/csv; charset=utf-8").send(templateCsv());
+  });
 
   app.use(express.static(path.join(ROOT, "public"), {
     setHeaders: (res) => res.set("Cache-Control", "no-cache"),
