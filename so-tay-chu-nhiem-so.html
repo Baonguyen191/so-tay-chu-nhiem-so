@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sổ tay Chủ nhiệm số</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Patrick+Hand&display=swap&subset=vietnamese" rel="stylesheet">
+<style>
+:root{
+  --paper:#FCFCFA; --surface:#FFFFFF; --line:#E4DEF5; --line-strong:#C9BFEA;
+  --ink:#4B2E83; --ink-soft:#EEE8FA; --text:#22202B; --muted:#6B6878;
+  --red:#C83A3A; --red-soft:#FBE9E9; --amber:#B7790F; --amber-soft:#FDF3DC;
+  --green:#2B7A4B; --green-soft:#E3F3E9; --star:#E8A317;
+  --r-sm:8px; --r-md:14px;
+  --font:"Be Vietnam Pro",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --hand:"Patrick Hand","Comic Sans MS",cursive;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#16141D; --surface:#1F1C28; --line:#2E2A3D; --line-strong:#433C5C;
+    --ink:#C6B4F4; --ink-soft:#2D2642; --text:#ECEAF2; --muted:#A19DB0;
+    --red:#F07C7C; --red-soft:#3A2023; --amber:#F0B954; --amber-soft:#382C14;
+    --green:#6FCF97; --green-soft:#1A3326; --star:#F2B93B;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#16141D; --surface:#1F1C28; --line:#2E2A3D; --line-strong:#433C5C;
+  --ink:#C6B4F4; --ink-soft:#2D2642; --text:#ECEAF2; --muted:#A19DB0;
+  --red:#F07C7C; --red-soft:#3A2023; --amber:#F0B954; --amber-soft:#382C14;
+  --green:#6FCF97; --green-soft:#1A3326; --star:#F2B93B;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--paper);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+img{max-width:100%}
+
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100%}
+@media (max-width:820px){.app{grid-template-columns:1fr}}
+
+/* Sidebar / bottom nav */
+.nav{background:var(--surface);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:env(safe-area-inset-top,0px);height:calc(100vh - env(safe-area-inset-top,0px))}
+.brand{padding:4px 10px 18px}
+.brand b{display:block;font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-.01em}
+.brand span{font-size:13px;color:var(--muted)}
+.nav button{display:flex;align-items:center;gap:12px;border:0;background:transparent;padding:11px 12px;border-radius:var(--r-sm);text-align:left;font-weight:500;color:var(--muted)}
+.nav button svg{width:22px;height:22px;flex:none}
+.nav button[aria-current="page"]{background:var(--ink-soft);color:var(--ink);font-weight:700}
+.nav .spacer{flex:1}
+.nav .reset{font-size:13px;color:var(--muted)}
+@media (max-width:820px){
+  .nav{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;flex-direction:row;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));border-right:0;border-top:1px solid var(--line);z-index:20;gap:0}
+  .brand,.nav .spacer,.nav .reset{display:none}
+  .nav button{flex-direction:column;gap:2px;font-size:11px;padding:6px 4px;flex:1;align-items:center;text-align:center}
+  main{padding-bottom:90px}
+}
+
+/* Header with ô ly paper */
+.top{position:relative;padding:28px 32px 22px;border-bottom:1px solid var(--line-strong);
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--line) 1px,transparent 1px),
+    linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:100% 8px, 32px 100%;}
+.top::before{content:"";position:absolute;left:24px;top:0;bottom:0;width:2px;background:var(--red);opacity:.45}
+.top-inner{position:relative;max-width:1000px;margin-left:12px}
+.top h1{margin:0;font-size:clamp(26px,4vw,34px);line-height:1.15;font-weight:800;color:var(--ink);letter-spacing:-.02em}
+.top .meta{margin-top:6px;color:var(--muted);font-size:15px;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center}
+.top .meta input{border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-sm);padding:4px 8px;font-size:14px}
+@media (max-width:820px){.top{padding:20px 18px 16px}.top::before{left:12px}.top-inner{margin-left:8px}}
+
+main{min-width:0}
+.view{max-width:1000px;padding:24px 32px 40px}
+@media (max-width:820px){.view{padding:18px 14px 30px}}
+h2{font-size:20px;margin:28px 0 12px;font-weight:700}
+h2:first-child{margin-top:0}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--surface);padding:16px 18px}
+.stat .n{font-size:30px;font-weight:800;line-height:1.1}
+.stat .l{font-size:14px;color:var(--muted)}
+.stat.alert .n{color:var(--red)}
+.stat.good .n{color:var(--green)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md)}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid var(--line)}
+.list li:first-child{border-top:0}
+.avatar{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;flex:none;background:var(--ink-soft);color:var(--ink)}
+.grow{flex:1;min-width:0}
+.name{font-weight:600}
+.sub{font-size:13px;color:var(--muted)}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.tag.red{background:var(--red-soft);color:var(--red)}
+.tag.amber{background:var(--amber-soft);color:var(--amber)}
+.tag.green{background:var(--green-soft);color:var(--green)}
+.tag.ink{background:var(--ink-soft);color:var(--ink)}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:820px){.two{grid-template-columns:1fr}}
+
+.btn{border:1px solid var(--line-strong);background:var(--surface);padding:9px 16px;border-radius:var(--r-sm);font-weight:600}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--ink)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.field{display:flex;flex-direction:column;gap:4px;font-size:14px;font-weight:600}
+.field input,.field select,.field textarea{font-weight:400;border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-sm);padding:10px 12px;font-size:16px;width:100%}
+.field textarea{min-height:96px;resize:vertical}
+.search{width:100%;border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:12px}
+
+/* Attendance */
+.att-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.att-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.att{display:flex;align-items:center;gap:10px;padding:12px;border-radius:var(--r-md);border:1.5px solid var(--line);background:var(--surface);text-align:left;width:100%;transition:border-color .15s,background .15s}
+.att .st{margin-left:auto;font-size:12px;font-weight:700}
+.att[data-s="P"]{border-color:var(--amber);background:var(--amber-soft)}
+.att[data-s="P"] .st{color:var(--amber)}
+.att[data-s="K"]{border-color:var(--red);background:var(--red-soft)}
+.att[data-s="K"] .st{color:var(--red)}
+.att[data-s=""] .st{color:var(--green)}
+.hint{font-size:14px;color:var(--muted);margin:0 0 14px}
+
+/* Comments */
+.levels{display:flex;gap:8px;flex-wrap:wrap}
+.levels label{flex:1;min-width:120px}
+.levels input{position:absolute;opacity:0}
+.levels span{display:block;text-align:center;padding:10px;border:1.5px solid var(--line-strong);border-radius:var(--r-sm);font-weight:600;font-size:14px}
+.levels input:checked + span{border-color:var(--ink);background:var(--ink-soft);color:var(--ink)}
+.levels input:focus-visible + span{outline:3px solid var(--ink);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px}
+.remark{font-family:var(--hand);font-size:20px;line-height:1.3;color:var(--red)}
+[data-theme="dark"] .remark{color:var(--red)}
+
+/* Stars */
+.star-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.star-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface)}
+.star-count{font-weight:800;font-size:20px;min-width:44px;text-align:right;color:var(--star)}
+.round{width:36px;height:36px;border-radius:50%;border:1px solid var(--line-strong);background:var(--surface);font-size:20px;line-height:1;display:grid;place-items:center;padding:0}
+.round.plus{background:var(--star);border-color:var(--star);color:#fff}
+.podium{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.podium .p{flex:1;min-width:150px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);padding:14px 16px}
+.podium .rank{font-family:var(--hand);font-size:26px;color:var(--star);line-height:1}
+
+/* Message */
+.msg-out{white-space:pre-wrap;background:var(--paper);border:1px dashed var(--line-strong);border-radius:var(--r-md);padding:16px;min-height:120px;font-size:15px}
+
+/* Modal */
+dialog{border:0;border-radius:var(--r-md);padding:0;width:min(560px,94vw);max-height:88vh;background:var(--surface);color:var(--text);box-shadow:0 20px 60px rgba(20,10,50,.25)}
+dialog::backdrop{background:rgba(25,15,50,.45)}
+.dlg-h{display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface)}
+.dlg-b{padding:18px 20px;display:grid;gap:14px;overflow:auto}
+.dlg-f{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}}
+
+.toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--paper);padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:50}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (min-width:821px){.toast{bottom:30px}}
+.empty{padding:20px;text-align:center;color:var(--muted)}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="nav" aria-label="Chức năng">
+    <div class="brand"><b>Sổ tay Chủ nhiệm số</b><span>Trường Tiểu học xã Tân Minh</span></div>
+    <button data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Hôm nay</button>
+    <button data-v="att"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 2v4M16 2v4M8.5 13l2.5 2.5 4.5-5"/></svg>Điểm danh</button>
+    <button data-v="cmt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1.5-4.5L16 5a2.1 2.1 0 0 1 3 3L8.5 18.5z"/></svg>Nhận xét</button>
+    <button data-v="star"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>Ngôi sao</button>
+    <button data-v="msg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>Phụ huynh</button>
+    <div class="spacer"></div>
+    <button class="reset" id="resetBtn">Khôi phục dữ liệu mẫu</button>
+  </nav>
+  <main>
+    <header class="top">
+      <div class="top-inner">
+        <h1 id="title">Lớp 3A</h1>
+        <div class="meta"><span id="teacher"></span><label>Ngày <input type="date" id="dateInput"></label></div>
+      </div>
+    </header>
+    <section class="view" id="view"></section>
+  </main>
+</div>
+
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+const SUBJECTS=["Tiếng Việt","Toán","Tiếng Anh","Đạo đức","Tự nhiên và Xã hội","Hoạt động trải nghiệm","Âm nhạc","Mĩ thuật","Giáo dục thể chất","Tin học và Công nghệ"];
+const LEVELS={T:"Hoàn thành tốt",H:"Hoàn thành",C:"Chưa hoàn thành"};
+const QUICK={T:["Đọc to, rõ ràng, diễn cảm.","Tính toán nhanh, chính xác.","Hăng hái phát biểu xây dựng bài.","Chữ viết đẹp, trình bày sạch sẽ."],
+ H:["Nắm được kiến thức cơ bản của bài.","Cần cẩn thận hơn khi làm bài.","Đã có tiến bộ so với tuần trước."],
+ C:["Cần luyện thêm bảng nhân.","Chưa hoàn thành bài tập về nhà.","Cần luyện đọc thêm ở nhà."]};
+const STAR_REASONS=["Phát biểu hay","Giúp đỡ bạn","Làm bài đầy đủ","Giữ vệ sinh lớp","Tiến bộ","Nói chuyện riêng"];
+const KEY="sotay-chunhiem-v1";
+
+const NAMES=[["Nguyễn Minh Anh","F"],["Trần Gia Bảo","M"],["Lê Ngọc Châu","F"],["Phạm Đức Duy","M"],["Hoàng Thu Hà","F"],["Vũ Quang Huy","M"],["Đặng Khánh Linh","F"],["Bùi Tuấn Kiệt","M"],["Đỗ Phương Mai","F"],["Ngô Bảo Nam","M"],["Dương Thảo Nhi","F"],["Lý Hoàng Phúc","M"],["Trịnh Minh Quân","M"],["Mai Diệu Thảo","F"],["Phan Anh Thư","F"],["Hồ Đức Trí","M"],["Chu Bảo Trâm","F"],["Tạ Gia Vinh","M"],["Lương Hải Yến","F"],["Kiều Nhật Long","M"]];
+const PARENTS=["Nguyễn Văn","Trần Thị","Lê Văn","Phạm Thị","Hoàng Văn","Vũ Thị","Đặng Văn","Bùi Thị","Đỗ Văn","Ngô Thị"];
+const HEALTH={2:"Dị ứng hải sản",6:"Hen phế quản nhẹ – mang theo thuốc xịt",11:"Cận thị, ngồi bàn đầu",16:"Dị ứng sữa bò"};
+
+function iso(d){const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)}
+function todayISO(){return iso(new Date())}
+function rnd(seed){let s=seed;return()=>{s=(s*9301+49297)%233280;return s/233280}}
+
+function seed(){
+  const r=rnd(42);
+  const students=NAMES.map((n,i)=>({id:"s"+(i+1),name:n[0],gender:n[1],dob:`2018-${String(1+(i*7)%12).padStart(2,"0")}-${String(3+(i*5)%25).padStart(2,"0")}`,
+    parent:PARENTS[i%PARENTS.length]+" "+["Hùng","Lan","Tuấn","Hoa","Dũng","Hương","Thắng","Nga","Sơn","Thủy"][i%10],
+    phone:"09"+String(10000000+Math.floor(r()*89999999)).slice(0,8),note:HEALTH[i]||""}));
+  const att={},comments=[],stars=[];
+  const d=new Date();let count=0;
+  while(count<22){d.setDate(d.getDate()-1);const w=d.getDay();if(w===0||w===6)continue;count++;
+    const k=iso(d);att[k]={};
+    students.forEach((s,i)=>{const x=r();const weak=(i===9||i===17);
+      if(x<(weak?0.12:0.02))att[k][s.id]="K";else if(x<(weak?0.2:0.05))att[k][s.id]="P";});
+    if(count<=8){for(let j=0;j<3;j++){const s=students[Math.floor(r()*students.length)];const lv=r()<.55?"T":r()<.8?"H":"C";
+      comments.push({id:"c"+k+j,sid:s.id,date:k,subject:SUBJECTS[Math.floor(r()*4)],level:lv,text:QUICK[lv][Math.floor(r()*QUICK[lv].length)]});}}
+    if(count<=5){for(let j=0;j<6;j++){const s=students[Math.floor(r()*students.length)];const neg=r()<.12;
+      stars.push({sid:s.id,date:k,delta:neg?-1:1,reason:neg?"Nói chuyện riêng":STAR_REASONS[Math.floor(r()*5)]});}}
+  }
+  comments.push({id:"cx1",sid:"s10",date:iso(new Date(Date.now()-86400000*2)),subject:"Toán",level:"C",text:"Cần luyện thêm bảng nhân 6, 7."});
+  return {className:"Lớp 3A",teacher:"GVCN: Cô Nguyễn Thị Hạnh",students,att,comments,stars};
+}
+
+let S;
+function load(){try{const raw=localStorage.getItem(KEY);if(raw){S=JSON.parse(raw);return}}catch(e){}S=seed()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+load();
+
+let curDate=todayISO(), curView="home";
+const $=s=>document.querySelector(s);
+const view=$("#view");
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const byId=id=>S.students.find(s=>s.id===id);
+const initials=n=>{const p=n.trim().split(/\s+/);return (p[p.length-1][0]||"").toUpperCase()};
+const short=n=>{const p=n.trim().split(/\s+/);return p.slice(-2).join(" ")};
+const fmt=d=>{const [y,m,dd]=d.split("-");return `${dd}/${m}/${y}`};
+const weekday=d=>["Chủ nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"][new Date(d+"T00:00").getDay()];
+function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove("show"),1800)}
+function status(sid,d){return (S.att[d]||{})[sid]||""}
+function monthStats(sid){const m=curDate.slice(0,7);let days=0,P=0,K=0;
+  Object.keys(S.att).forEach(d=>{if(d.slice(0,7)!==m||d>curDate)return;days++;const v=S.att[d][sid];if(v==="P")P++;if(v==="K")K++;});
+  return {days,P,K}}
+function classRate(){const m=curDate.slice(0,7);let tot=0,pres=0;
+  Object.keys(S.att).forEach(d=>{if(d.slice(0,7)!==m||d>curDate)return;S.students.forEach(s=>{tot++;if(!S.att[d][s.id])pres++;})});
+  return tot?Math.round(pres/tot*1000)/10:100}
+function weekStart(d){const x=new Date(d+"T00:00");const w=(x.getDay()+6)%7;x.setDate(x.getDate()-w);return iso(x)}
+function starTotal(sid,from){return S.stars.filter(x=>x.sid===sid&&(!from||x.date>=from)&&x.date<=curDate).reduce((a,b)=>a+b.delta,0)}
+
+function header(){$("#title").textContent=S.className;$("#teacher").textContent=S.teacher+" · Sĩ số "+S.students.length;$("#dateInput").value=curDate}
+
+/* ---------- HOME ---------- */
+function vHome(){
+  const absent=S.students.filter(s=>status(s.id,curDate));
+  const rate=classRate();
+  const ws=weekStart(curDate);
+  const care=S.students.map(s=>{const m=monthStats(s.id);const c=S.comments.filter(x=>x.sid===s.id&&x.level==="C"&&x.date.slice(0,7)===curDate.slice(0,7)).length;
+    const why=[];if(m.K>=2)why.push(`Vắng không phép ${m.K} buổi`);else if(m.P+m.K>=3)why.push(`Vắng ${m.P+m.K} buổi`);if(c)why.push(`${c} nhận xét “Chưa hoàn thành”`);return {s,why}}).filter(x=>x.why.length);
+  const health=S.students.filter(s=>s.note);
+  const q=(vHome.q||"").toLowerCase();
+  const list=S.students.filter(s=>s.name.toLowerCase().includes(q));
+  view.innerHTML=`
+  <div class="stats">
+    <div class="stat"><div class="n">${S.students.length}</div><div class="l">Sĩ số lớp</div></div>
+    <div class="stat good"><div class="n">${S.students.length-absent.length}</div><div class="l">Có mặt ${curDate===todayISO()?"hôm nay":fmt(curDate)}</div></div>
+    <div class="stat ${absent.length?"alert":""}"><div class="n">${absent.length}</div><div class="l">Vắng</div></div>
+    <div class="stat"><div class="n">${rate}%</div><div class="l">Chuyên cần tháng ${+curDate.slice(5,7)}</div></div>
+  </div>
+  <div class="two">
+    <div><h2>Cần quan tâm</h2><div class="panel"><ul class="list">${care.length?care.map(x=>`<li><div class="avatar">${initials(x.s.name)}</div><div class="grow"><button class="btn ghost" style="padding:0" data-open="${x.s.id}"><span class="name">${esc(x.s.name)}</span></button><div class="sub">${x.why.join(" · ")}</div></div><span class="tag red">Theo dõi</span></li>`).join(""):`<li class="empty">Chưa có học sinh nào cần lưu ý trong tháng.</li>`}</ul></div></div>
+    <div><h2>Lưu ý sức khỏe</h2><div class="panel"><ul class="list">${health.map(s=>`<li><div class="avatar">${initials(s.name)}</div><div class="grow"><div class="name">${esc(s.name)}</div><div class="sub">${esc(s.note)}</div></div></li>`).join("")||`<li class="empty">Không có ghi chú.</li>`}</ul></div></div>
+  </div>
+  <h2>Danh sách học sinh</h2>
+  <div class="row" style="margin-bottom:12px"><input class="search" style="margin:0;flex:1;min-width:200px" id="q" placeholder="Tìm theo tên…" value="${esc(vHome.q||"")}" aria-label="Tìm học sinh"><button class="btn" id="add">Thêm học sinh</button><button class="btn" id="copyAll">Sao chép bảng chuyên cần</button></div>
+  <div class="panel"><ul class="list">${list.map((s,i)=>{const m=monthStats(s.id);const st=status(s.id,curDate);return `<li><div class="avatar">${initials(s.name)}</div><div class="grow"><button class="btn ghost" style="padding:0;text-align:left" data-open="${s.id}"><span class="name">${esc(s.name)}</span></button><div class="sub">PH: ${esc(s.parent)} · ${esc(s.phone)}</div></div><span class="tag ink">★ ${starTotal(s.id,ws)}</span>${st?`<span class="tag ${st==="K"?"red":"amber"}">${st==="K"?"Vắng KP":"Vắng CP"}</span>`:""}</li>`}).join("")||`<li class="empty">Không tìm thấy học sinh.</li>`}</ul></div>`;
+  $("#q").addEventListener("input",e=>{vHome.q=e.target.value;const p=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)});
+  $("#add").onclick=()=>openStudent(null);
+  $("#copyAll").onclick=()=>{const rows=[["STT","Họ và tên","Số buổi","Vắng có phép","Vắng không phép","Ngôi sao tháng"].join("\t")];
+    S.students.forEach((s,i)=>{const m=monthStats(s.id);rows.push([i+1,s.name,m.days,m.P,m.K,starTotal(s.id,curDate.slice(0,7)+"-01")].join("\t"))});
+    copy(rows.join("\n"),"Đã sao chép – dán vào Excel")};
+}
+
+/* ---------- ATTENDANCE ---------- */
+function vAtt(){
+  const a=S.att[curDate]||{};
+  const P=Object.values(a).filter(v=>v==="P").length,K=Object.values(a).filter(v=>v==="K").length;
+  const wd=new Date(curDate+"T00:00").getDay();
+  view.innerHTML=`<h2>Điểm danh ${weekday(curDate).toLowerCase()}, ${fmt(curDate)}</h2>
+  ${wd===0||wd===6?`<p class="hint">Ngày được chọn là cuối tuần.</p>`:""}
+  <p class="hint">Chạm vào tên học sinh để đổi trạng thái: Có mặt → Vắng có phép → Vắng không phép.</p>
+  <div class="att-summary"><span class="tag green">Có mặt ${S.students.length-P-K}</span><span class="tag amber">Vắng có phép ${P}</span><span class="tag red">Vắng không phép ${K}</span>
+  <button class="btn ghost small" id="allPresent" style="margin-left:auto">Đặt lại: tất cả có mặt</button></div>
+  <div class="att-grid">${S.students.map(s=>{const v=a[s.id]||"";return `<button class="att" data-s="${v}" data-id="${s.id}" aria-label="${esc(s.name)}: ${v==="P"?"vắng có phép":v==="K"?"vắng không phép":"có mặt"}"><div class="avatar">${initials(s.name)}</div><div class="grow"><div class="name">${esc(short(s.name))}</div></div><span class="st">${v==="P"?"Vắng CP":v==="K"?"Vắng KP":"Có mặt"}</span></button>`}).join("")}</div>
+  ${P+K?`<div class="row" style="margin-top:18px"><button class="btn primary" id="toMsg">Soạn tin báo phụ huynh (${P+K})</button></div>`:""}`;
+  view.querySelectorAll(".att").forEach(b=>b.onclick=()=>{const id=b.dataset.id;S.att[curDate]=S.att[curDate]||{};const v=S.att[curDate][id]||"";
+    const nx=v===""?"P":v==="P"?"K":"";if(nx)S.att[curDate][id]=nx;else delete S.att[curDate][id];save();render()});
+  $("#allPresent").onclick=()=>{S.att[curDate]={};save();render();toast("Đã đặt tất cả có mặt")};
+  const tm=$("#toMsg");if(tm)tm.onclick=()=>{vMsg.tpl="absent";go("msg")};
+}
+
+/* ---------- COMMENTS ---------- */
+function vCmt(){
+  vCmt.sid=vCmt.sid||S.students[0].id;vCmt.level=vCmt.level||"T";
+  const hist=S.comments.filter(c=>c.sid===vCmt.sid).sort((a,b)=>b.date.localeCompare(a.date));
+  const cnt={T:0,H:0,C:0};hist.forEach(c=>cnt[c.level]++);
+  view.innerHTML=`<div class="two">
+  <div><h2>Ghi nhận xét</h2>
+   <div class="panel" style="padding:18px;display:grid;gap:14px">
+    <label class="field">Học sinh<select id="cs">${S.students.map(s=>`<option value="${s.id}" ${s.id===vCmt.sid?"selected":""}>${esc(s.name)}</option>`).join("")}</select></label>
+    <label class="field">Môn học / Hoạt động<select id="csub">${SUBJECTS.map(x=>`<option ${x===vCmt.sub?"selected":""}>${x}</option>`).join("")}</select></label>
+    <fieldset style="border:0;padding:0;margin:0"><legend class="field" style="margin-bottom:6px">Mức đánh giá (TT 27/2020)</legend>
+     <div class="levels">${Object.entries(LEVELS).map(([k,v])=>`<label><input type="radio" name="lv" value="${k}" ${k===vCmt.level?"checked":""}><span>${v}</span></label>`).join("")}</div></fieldset>
+    <label class="field">Nhận xét<textarea id="ctext" placeholder="Viết nhận xét hoặc chọn câu gợi ý bên dưới">${esc(vCmt.draft||"")}</textarea></label>
+    <div class="chips">${QUICK[vCmt.level].map(q=>`<button class="chip" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>
+    <div><button class="btn primary" id="csave">Lưu nhận xét</button></div>
+   </div></div>
+  <div><h2>Lịch sử – ${esc(short(byId(vCmt.sid).name))}</h2>
+   <div class="row" style="margin-bottom:12px"><span class="tag green">HTT ${cnt.T}</span><span class="tag ink">HT ${cnt.H}</span><span class="tag red">CHT ${cnt.C}</span></div>
+   <div class="panel"><ul class="list">${hist.map(c=>`<li style="align-items:flex-start"><div class="grow"><div class="sub">${fmt(c.date)} · ${esc(c.subject)} · <b style="color:${c.level==="C"?"var(--red)":c.level==="T"?"var(--green)":"var(--ink)"}">${LEVELS[c.level]}</b></div><div class="remark">${esc(c.text)}</div></div><button class="btn ghost small" data-del="${c.id}" aria-label="Xóa nhận xét">Xóa</button></li>`).join("")||`<li class="empty">Chưa có nhận xét nào cho em này.</li>`}</ul></div>
+  </div></div>`;
+  $("#cs").onchange=e=>{vCmt.sid=e.target.value;vCmt.draft=$("#ctext").value;render()};
+  $("#csub").onchange=e=>vCmt.sub=e.target.value;
+  view.querySelectorAll('input[name=lv]').forEach(r=>r.onchange=()=>{vCmt.level=r.value;vCmt.draft=$("#ctext").value;render()});
+  view.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{const t=$("#ctext");t.value=(t.value?t.value.trim()+" ":"")+c.dataset.q;t.focus()});
+  $("#csave").onclick=()=>{const t=$("#ctext").value.trim();if(!t){toast("Hãy nhập nội dung nhận xét");return}
+    S.comments.push({id:"c"+Date.now(),sid:vCmt.sid,date:curDate,subject:$("#csub").value,level:vCmt.level,text:t});vCmt.draft="";vCmt.sub=$("#csub").value;save();render();toast("Đã lưu nhận xét")};
+  view.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{S.comments=S.comments.filter(c=>c.id!==b.dataset.del);save();render();toast("Đã xóa")});
+}
+
+/* ---------- STARS ---------- */
+function vStar(){
+  const ws=weekStart(curDate);
+  vStar.reason=vStar.reason||STAR_REASONS[0];
+  const ranked=S.students.map(s=>({s,n:starTotal(s.id,ws)})).sort((a,b)=>b.n-a.n);
+  const top=ranked.slice(0,3);
+  view.innerHTML=`<h2>Ngôi sao chăm ngoan – tuần từ ${fmt(ws)}</h2>
+  <div class="podium">${top.map((x,i)=>`<div class="p"><div class="rank">Hạng ${i+1}</div><div class="name" style="margin-top:6px">${esc(x.s.name)}</div><div class="sub">★ ${x.n} sao</div></div>`).join("")}</div>
+  <h2>Tặng sao</h2>
+  <p class="hint">Chọn lý do, rồi bấm + hoặc − cạnh tên học sinh.</p>
+  <div class="chips" style="margin-bottom:14px" role="radiogroup" aria-label="Lý do">${STAR_REASONS.map(r=>`<button class="chip" role="radio" aria-checked="${r===vStar.reason}" style="${r===vStar.reason?"background:var(--ink);color:var(--surface);border-color:var(--ink)":""}" data-r="${r}">${r}</button>`).join("")}</div>
+  <div class="star-grid">${S.students.map(s=>`<div class="star-card"><div class="avatar">${initials(s.name)}</div><div class="grow name">${esc(short(s.name))}</div><button class="round" data-m="${s.id}" aria-label="Trừ một sao của ${esc(s.name)}">−</button><span class="star-count">★${starTotal(s.id,ws)}</span><button class="round plus" data-p="${s.id}" aria-label="Tặng một sao cho ${esc(s.name)}">+</button></div>`).join("")}</div>`;
+  view.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{vStar.reason=b.dataset.r;render()});
+  view.querySelectorAll("[data-p],[data-m]").forEach(b=>b.onclick=()=>{const plus=!!b.dataset.p;const sid=b.dataset.p||b.dataset.m;
+    S.stars.push({sid,date:curDate,delta:plus?1:-1,reason:vStar.reason});save();render();toast(`${plus?"+1":"−1"} sao cho ${short(byId(sid).name)}`)});
+}
+
+/* ---------- MESSAGES ---------- */
+const TPL={
+ absent:{label:"Báo vắng học",need:"absent"},
+ praise:{label:"Khen ngợi",need:"one"},
+ remind:{label:"Nhắc nhở học tập",need:"one"},
+ weekly:{label:"Tổng kết tuần",need:"one"},
+ notice:{label:"Thông báo chung",need:"none"}
+};
+function buildMsg(tpl,s){
+  const g=s?(s.gender==="F"?"cháu":"cháu"):"";const n=s?short(s.name):"";const ws=weekStart(curDate);
+  if(tpl==="absent"){const v=status(s.id,curDate);return `Kính gửi phụ huynh em ${s.name},\nHôm nay (${weekday(curDate)}, ${fmt(curDate)}) ${g} ${n} ${v==="P"?"nghỉ học có phép":"vắng mặt tại lớp mà chưa có thông tin xin phép"}.${v==="K"?" Gia đình vui lòng phản hồi để cô nắm tình hình của cháu.":" Cô chúc cháu sớm khỏe và đi học trở lại."}\nCô sẽ gửi lại nội dung bài học hôm nay để cháu theo kịp các bạn.\n${S.teacher.replace("GVCN: ","")} – GVCN ${S.className}`}
+  if(tpl==="praise"){const st=S.stars.filter(x=>x.sid===s.id&&x.date>=ws&&x.delta>0);const reasons=[...new Set(st.map(x=>x.reason))];const c=S.comments.filter(x=>x.sid===s.id&&x.level==="T").slice(-1)[0];
+    return `Kính gửi phụ huynh em ${s.name},\nTuần này ${g} ${n} đạt ${starTotal(s.id,ws)} ngôi sao chăm ngoan${reasons.length?" nhờ: "+reasons.join(", ").toLowerCase():""}.${c?`\nNhận xét môn ${c.subject}: ${c.text}`:""}\nCô rất vui và mong gia đình tiếp tục động viên cháu.\n${S.teacher.replace("GVCN: ","")} – GVCN ${S.className}`}
+  if(tpl==="remind"){const c=S.comments.filter(x=>x.sid===s.id&&x.level!=="T").sort((a,b)=>b.date.localeCompare(a.date))[0];
+    return `Kính gửi phụ huynh em ${s.name},\nCô xin trao đổi với gia đình về việc học của ${g} ${n}.${c?`\nMôn ${c.subject} (${fmt(c.date)}): ${c.text}`:"\nThời gian gần đây cháu cần tập trung hơn trong giờ học."}\nMong gia đình dành thêm 15–20 phút mỗi tối cùng cháu ôn bài. Cô cảm ơn gia đình.\n${S.teacher.replace("GVCN: ","")} – GVCN ${S.className}`}
+  if(tpl==="weekly"){let P=0,K=0;Object.keys(S.att).forEach(d=>{if(d>=ws&&d<=curDate){const v=S.att[d][s.id];if(v==="P")P++;if(v==="K")K++}});
+    const cs=S.comments.filter(x=>x.sid===s.id&&x.date>=ws);
+    return `Kính gửi phụ huynh em ${s.name},\nTổng kết tuần từ ${fmt(ws)}:\n• Chuyên cần: ${P+K?`vắng ${P+K} buổi (${P} có phép, ${K} không phép)`:"đi học đầy đủ"}\n• Ngôi sao chăm ngoan: ${starTotal(s.id,ws)} sao\n${cs.length?cs.map(c=>`• ${c.subject}: ${LEVELS[c.level]} – ${c.text}`).join("\n"):"• Cháu hoàn thành các nội dung học tập trong tuần."}\n${S.teacher.replace("GVCN: ","")} – GVCN ${S.className}`}
+  return `Kính gửi quý phụ huynh ${S.className},\n[Nội dung thông báo]\nTrân trọng,\n${S.teacher.replace("GVCN: ","")} – GVCN ${S.className}`;
+}
+function vMsg(){
+  vMsg.tpl=vMsg.tpl||"absent";
+  const absent=S.students.filter(s=>status(s.id,curDate));
+  const need=TPL[vMsg.tpl].need;
+  let pool=need==="absent"?absent:S.students;
+  if(need!=="none"&&!pool.find(s=>s.id===vMsg.sid))vMsg.sid=pool[0]&&pool[0].id;
+  const s=need==="none"?null:byId(vMsg.sid);
+  const text=(need==="none"||s)?buildMsg(vMsg.tpl,s):"";
+  view.innerHTML=`<h2>Liên lạc phụ huynh</h2>
+  <div class="two"><div class="panel" style="padding:18px;display:grid;gap:14px;align-content:start">
+   <label class="field">Mẫu tin nhắn<select id="mt">${Object.entries(TPL).map(([k,v])=>`<option value="${k}" ${k===vMsg.tpl?"selected":""}>${v.label}</option>`).join("")}</select></label>
+   ${need==="none"?"":pool.length?`<label class="field">Học sinh${need==="absent"?" vắng hôm nay":""}<select id="ms">${pool.map(x=>`<option value="${x.id}" ${x.id===vMsg.sid?"selected":""}>${esc(x.name)}</option>`).join("")}</select></label>`:`<p class="empty" style="padding:6px 0">Hôm nay lớp đi học đầy đủ, không có tin báo vắng cần gửi.</p>`}
+   ${s?`<div class="sub">Gửi tới: <b>${esc(s.parent)}</b> · ${esc(s.phone)}</div>`:""}
+  </div>
+  <div>${text?`<label class="sr" for="mo">Nội dung tin nhắn</label><textarea id="mo" class="msg-out" style="width:100%;min-height:220px;font-family:inherit">${esc(text)}</textarea>
+   <div class="row" style="margin-top:12px"><button class="btn primary" id="mc">Sao chép tin nhắn</button>${s?`<a class="btn" style="text-decoration:none" href="sms:${s.phone}">Mở tin nhắn SMS</a>`:""}</div>
+   <p class="hint" style="margin-top:10px">Sao chép rồi dán vào Zalo hoặc tin nhắn riêng của phụ huynh. Mỗi tin chỉ chứa thông tin của một em.</p>`:""}</div></div>`;
+  $("#mt").onchange=e=>{vMsg.tpl=e.target.value;render()};
+  const ms=$("#ms");if(ms)ms.onchange=e=>{vMsg.sid=e.target.value;render()};
+  const mc=$("#mc");if(mc)mc.onclick=()=>copy($("#mo").value,"Đã sao chép tin nhắn");
+}
+
+/* ---------- STUDENT DIALOG ---------- */
+function openStudent(id){
+  const s=id?byId(id):{id:"s"+Date.now(),name:"",gender:"F",dob:"2018-01-01",parent:"",phone:"",note:""};
+  const m=id?monthStats(id):null;
+  const cs=id?S.comments.filter(c=>c.sid===id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3):[];
+  const dlg=$("#dlg");
+  dlg.innerHTML=`<form method="dialog" id="sf">
+   <div class="dlg-h"><div class="avatar">${s.name?initials(s.name):"+"}</div><div class="grow"><div class="name">${s.name?esc(s.name):"Thêm học sinh"}</div>${m?`<div class="sub">Tháng ${+curDate.slice(5,7)}: ${m.days} buổi · vắng ${m.P} có phép, ${m.K} không phép · ★ ${starTotal(id,curDate.slice(0,7)+"-01")}</div>`:""}</div><button class="btn ghost" value="cancel" aria-label="Đóng">Đóng</button></div>
+   <div class="dlg-b">
+    ${m?`<div class="bar" aria-label="Tỉ lệ chuyên cần"><i style="width:${m.days?Math.round((m.days-m.P-m.K)/m.days*100):100}%"></i></div>`:""}
+    <label class="field">Họ và tên<input name="name" required value="${esc(s.name)}"></label>
+    <div class="grid2"><label class="field">Ngày sinh<input type="date" name="dob" value="${s.dob}"></label>
+     <label class="field">Giới tính<select name="gender"><option value="F" ${s.gender==="F"?"selected":""}>Nữ</option><option value="M" ${s.gender==="M"?"selected":""}>Nam</option></select></label></div>
+    <div class="grid2"><label class="field">Phụ huynh<input name="parent" value="${esc(s.parent)}"></label>
+     <label class="field">Số điện thoại<input name="phone" inputmode="tel" value="${esc(s.phone)}"></label></div>
+    <label class="field">Ghi chú sức khỏe<input name="note" value="${esc(s.note)}" placeholder="Dị ứng, bệnh mãn tính, người đón…"></label>
+    ${cs.length?`<div><div class="field" style="margin-bottom:6px">Nhận xét gần đây</div>${cs.map(c=>`<div class="sub">${fmt(c.date)} · ${esc(c.subject)} · ${LEVELS[c.level]}</div><div class="remark" style="margin-bottom:8px">${esc(c.text)}</div>`).join("")}</div>`:""}
+   </div>
+   <div class="dlg-f">${id?`<button class="btn ghost" type="button" id="sdel" style="margin-right:auto;color:var(--red)">Xóa học sinh</button>`:""}<button class="btn" value="cancel">Hủy</button><button class="btn primary" value="ok" id="sok">Lưu</button></div>
+  </form>`;
+  dlg.showModal();
+  $("#sok").onclick=e=>{const f=$("#sf");if(!f.name.value.trim()){e.preventDefault();f.name.focus();return}
+    Object.assign(s,{name:f.name.value.trim(),dob:f.dob.value,gender:f.gender.value,parent:f.parent.value.trim(),phone:f.phone.value.trim(),note:f.note.value.trim()});
+    if(!id)S.students.push(s);save();setTimeout(()=>{render();toast(id?"Đã lưu hồ sơ":"Đã thêm học sinh")},0)};
+  const del=$("#sdel");if(del)del.onclick=()=>{if(!confirm("Xóa học sinh "+s.name+" khỏi lớp?"))return;S.students=S.students.filter(x=>x.id!==id);save();dlg.close();render();toast("Đã xóa học sinh")};
+}
+
+function copy(text,msg){
+  const done=()=>toast(msg);
+  if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(text).then(done,()=>fallback())}else fallback();
+  function fallback(){const t=document.createElement("textarea");t.value=text;t.style.position="fixed";t.style.opacity="0";document.body.appendChild(t);t.select();try{document.execCommand("copy");done()}catch(e){toast("Không sao chép được – hãy chọn và sao chép thủ công")}t.remove()}
+}
+
+const VIEWS={home:vHome,att:vAtt,cmt:vCmt,star:vStar,msg:vMsg};
+function render(){header();document.querySelectorAll(".nav [data-v]").forEach(b=>b.toggleAttribute("aria-current",false));
+  const cur=document.querySelector(`.nav [data-v="${curView}"]`);if(cur)cur.setAttribute("aria-current","page");
+  VIEWS[curView]();view.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openStudent(b.dataset.open))}
+function go(v){curView=v;render();window.scrollTo(0,0)}
+document.querySelectorAll(".nav [data-v]").forEach(b=>b.onclick=()=>go(b.dataset.v));
+$("#dateInput").onchange=e=>{if(e.target.value){curDate=e.target.value;render()}};
+$("#resetBtn").onclick=()=>{if(!confirm("Xóa mọi thay đổi và khôi phục dữ liệu mẫu?"))return;S=seed();save();render();toast("Đã khôi phục dữ liệu mẫu")};
+render();
+})();
+</script>
+</body>
+</html>
