@@ -52,6 +52,9 @@ export function authRoutes() {
     if (!username || !password) throw badRequest("Vui lòng nhập tên đăng nhập và mật khẩu");
 
     const ip = req.ip || "unknown";
+    if (ipFails.size > 5000) {
+      for (const [k, v] of ipFails) if (v.resetAt <= now()) ipFails.delete(k);
+    }
     const ipEntry = ipFails.get(ip);
     if (ipEntry && ipEntry.resetAt > now() && ipEntry.count >= IP_MAX_FAILS) {
       throw new HttpError(429, `Có quá nhiều lần đăng nhập sai từ thiết bị này. Vui lòng thử lại sau ${minutesLeft(ipEntry.resetAt - now())} phút.`);

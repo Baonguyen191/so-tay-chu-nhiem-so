@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server/index.js",
     "demo": "node scripts/demo.js",
-    "test": "node --test \"tests/**/*.test.js\""
+    "test": "node --test \"tests/**/*.test.js\"",
+    "dat-lai-mat-khau": "node scripts/dat-lai-mat-khau.js"
   },
   "engines": {
     "node": ">=22"
