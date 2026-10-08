@@ -1,6 +1,6 @@
 // Màn hình "Phụ huynh": mẫu tin nhắn tự điền dữ liệu học sinh, tên lớp, tên giáo viên.
 import { S, byId, pronoun, teacherName, ui } from "../store.js";
-import { $, copy, esc, fmt, short, weekday } from "../util.js";
+import { $, $$, copy, esc, fmt, short, weekday } from "../util.js";
 import { absencesBetween, starTotal, weekStart } from "../shared/stats.js";
 import { LEVELS } from "../shared/constants.js";
 
@@ -14,6 +14,18 @@ const TPL = {
 
 let sid = null;
 const status = (id, d) => (S.att[d] || {})[id] || "";
+
+/**
+ * Nút mở khung chat Zalo theo số điện thoại (mỗi phụ huynh một nút).
+ * Zalo không cho trang web điền sẵn nội dung, nên khi bấm, tin nhắn được sao chép trước để dán vào.
+ */
+function zaloButtons(s) {
+  const contacts = [[s.parentName, s.parentPhone], [s.parent2Name, s.parent2Phone]].filter(([, phone]) => phone);
+  return contacts.map(([name, phone]) => {
+    const label = contacts.length > 1 ? `Zalo ${name ? name.trim().split(/\s+/).pop() : phone}` : "Mở Zalo";
+    return `<a class="btn" href="https://zalo.me/${esc(phone)}" target="_blank" rel="noopener" data-zalo>${esc(label)}</a>`;
+  }).join("");
+}
 
 function signature() {
   const name = teacherName();
@@ -67,12 +79,14 @@ export function render(view) {
    ${s ? `<div class="sub">Gửi tới: <b>${esc(s.parentName || "(chưa có tên phụ huynh)")}</b>${s.parentPhone ? " · " + esc(s.parentPhone) : ""}${s.parent2Name || s.parent2Phone ? `<br>hoặc: <b>${esc(s.parent2Name || "phụ huynh thứ hai")}</b>${s.parent2Phone ? " · " + esc(s.parent2Phone) : ""}` : ""}</div>` : ""}
   </div>
   <div>${text ? `<label class="sr" for="mo">Nội dung tin nhắn</label><textarea id="mo" class="msg-out">${esc(text)}</textarea>
-   <div class="row" style="margin-top:12px"><button class="btn primary" id="mc">Sao chép tin nhắn</button>${s?.parentPhone ? `<a class="btn" href="sms:${esc(s.parentPhone)}">Mở tin nhắn SMS</a>` : ""}</div>
-   <p class="hint" style="margin-top:10px">Sao chép rồi dán vào Zalo hoặc tin nhắn riêng của phụ huynh. Mỗi tin chỉ chứa thông tin của một em.</p>` : ""}</div></div>`;
+   <div class="row" style="margin-top:12px"><button class="btn primary" id="mc">Sao chép tin nhắn</button>${s ? zaloButtons(s) : ""}${s?.parentPhone ? `<a class="btn" href="sms:${esc(s.parentPhone)}">Mở tin nhắn SMS</a>` : ""}</div>
+   <p class="hint" style="margin-top:10px">Bấm nút Zalo: tin nhắn được sao chép sẵn và Zalo mở đúng khung chat của số điện thoại đó. Nhấn giữ ô nhập tin → Dán → Gửi. Nếu phụ huynh không dùng Zalo bằng số này, Zalo sẽ báo không tìm thấy: hãy dùng SMS. Mỗi tin chỉ chứa thông tin của một em.</p>` : ""}</div></div>`;
 
   $("#mt").onchange = (e) => { S.msgTemplate = e.target.value; ui.render(); };
   const ms = $("#ms");
   if (ms) ms.onchange = (e) => { sid = Number(e.target.value); ui.render(); };
   const mc = $("#mc");
   if (mc) mc.onclick = () => copy($("#mo").value, "Đã sao chép tin nhắn");
+  // Sao chép ngay trong lúc bấm (trình duyệt chỉ cho sao chép khi người dùng bấm), rồi để liên kết mở Zalo.
+  $$("[data-zalo]", view).forEach((a) => (a.onclick = () => copy($("#mo").value, "Đã sao chép – mở Zalo, dán vào khung chat rồi gửi")));
 }
