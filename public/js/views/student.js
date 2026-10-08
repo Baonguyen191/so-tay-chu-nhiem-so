@@ -7,7 +7,7 @@ import { LEVELS } from "../shared/constants.js";
 import { validateStudent } from "../shared/validate.js";
 
 export function openStudent(id) {
-  const s = id ? byId(id) : { fullName: "", dob: null, gender: null, parentName: "", parentPhone: "", healthNote: "" };
+  const s = id ? byId(id) : { fullName: "", dob: null, gender: null, parentName: "", parentPhone: "", parent2Name: "", parent2Phone: "", healthNote: "" };
   if (!s) return;
   const m = id ? monthStats(S.att, id, S.curDate) : null;
   const rate = m ? studentRate(m) : null;
@@ -32,6 +32,10 @@ export function openStudent(id) {
      <label class="field">Họ tên phụ huynh<input name="parentName" maxlength="80" value="${esc(s.parentName)}" autocomplete="off"></label>
      <label class="field">Số điện thoại<input name="parentPhone" inputmode="tel" maxlength="20" value="${esc(s.parentPhone)}" autocomplete="off" placeholder="0912345678"></label>
     </div>
+    <div class="grid2">
+     <label class="field">Phụ huynh thứ hai<input name="parent2Name" maxlength="80" value="${esc(s.parent2Name || "")}" autocomplete="off" placeholder="ví dụ: họ tên bố"></label>
+     <label class="field">Số điện thoại<input name="parent2Phone" inputmode="tel" maxlength="20" value="${esc(s.parent2Phone || "")}" autocomplete="off"></label>
+    </div>
     <label class="field">Ghi chú sức khỏe<input name="healthNote" maxlength="300" value="${esc(s.healthNote)}" placeholder="Dị ứng, bệnh mãn tính, người đón…"></label>
     <p class="hint" style="margin:0">Chỉ ghi thông tin cần cho công tác chủ nhiệm. Không ghi số định danh cá nhân hay số căn cước.</p>
     ${recent.length ? `<div><div class="field" style="margin-bottom:6px">Nhận xét gần đây</div>${recent.map((c) => `<div class="sub">${fmt(c.date)} · ${esc(c.subject)} · ${esc(LEVELS[c.level])}</div><div class="remark" style="margin-bottom:8px">${esc(c.text)}</div>`).join("")}</div>` : ""}
@@ -51,6 +55,7 @@ export function openStudent(id) {
     const input = {
       fullName: f.fullName.value, dob: f.dob.value, gender: f.gender.value,
       parentName: f.parentName.value, parentPhone: f.parentPhone.value, healthNote: f.healthNote.value,
+      parent2Name: f.parent2Name.value, parent2Phone: f.parent2Phone.value,
     };
     const check = validateStudent(input, { today: todayISO() });
     if (check.errors.length) {

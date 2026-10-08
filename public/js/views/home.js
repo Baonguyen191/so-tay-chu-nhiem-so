@@ -6,6 +6,9 @@ import { openStudent } from "./student.js";
 import { openImport } from "./import.js";
 
 let query = "";
+
+const parentLine = (s) => [[s.parentName, s.parentPhone], [s.parent2Name, s.parent2Phone]]
+  .map((p) => p.filter(Boolean).join(" · ")).filter(Boolean).join("; ");
 const status = (sid, d) => (S.att[d] || {})[sid] || "";
 
 function careList() {
@@ -62,7 +65,7 @@ export function render(view) {
   </div>
   <div class="panel"><ul class="list" id="stList">${S.students.map((s) => {
     const st = status(s.id, d);
-    return `<li data-q="${esc(s.fullName.toLocaleLowerCase("vi"))}"><div class="avatar">${esc(initials(s.fullName))}</div><div class="grow"><button class="btn link" data-open="${s.id}"><span class="name">${esc(s.fullName)}</span></button><div class="sub">${s.parentName || s.parentPhone ? `PH: ${esc([s.parentName, s.parentPhone].filter(Boolean).join(" · "))}` : "Chưa có thông tin phụ huynh"}</div></div><span class="tag ink">★ ${starTotal(S.stars, s.id, ws, d)}</span>${st ? `<span class="tag ${st === "K" ? "red" : "amber"}">${st === "K" ? "Vắng KP" : "Vắng CP"}</span>` : ""}</li>`;
+    return `<li data-q="${esc(s.fullName.toLocaleLowerCase("vi"))}"><div class="avatar">${esc(initials(s.fullName))}</div><div class="grow"><button class="btn link" data-open="${s.id}"><span class="name">${esc(s.fullName)}</span></button><div class="sub">${parentLine(s) ? `PH: ${esc(parentLine(s))}` : "Chưa có thông tin phụ huynh"}</div></div><span class="tag ink">★ ${starTotal(S.stars, s.id, ws, d)}</span>${st ? `<span class="tag ${st === "K" ? "red" : "amber"}">${st === "K" ? "Vắng KP" : "Vắng CP"}</span>` : ""}</li>`;
   }).join("")}<li class="empty" id="noMatch" hidden>Không tìm thấy học sinh.</li></ul></div>`;
 
   const filter = () => {

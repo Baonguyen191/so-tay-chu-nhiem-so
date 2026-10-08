@@ -4,3 +4,8 @@ data/
 *.sqlite-*
 .env
 dist-pages/
+
+# Dữ liệu học sinh thật: không bao giờ đưa lên GitHub
+*.xlsx
+*.xls
+*.csv

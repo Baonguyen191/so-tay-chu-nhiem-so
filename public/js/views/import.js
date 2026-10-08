@@ -22,7 +22,8 @@ function step1() {
         <button type="button" role="tab" data-mode="file" aria-selected="${st.mode === "file"}">Tải file lên</button>
       </div>
       <p class="hint" style="margin:0">Thứ tự cột: <b>Họ và tên</b> · Ngày sinh · Giới tính · Họ tên phụ huynh · Số điện thoại · Ghi chú sức khỏe.
-        Chỉ Họ và tên là bắt buộc. Có thể kèm dòng tiêu đề và cột STT.</p>
+        Chỉ Họ và tên là bắt buộc. Danh sách có dòng tên cột (kể cả danh sách của trường có cột mẹ, bố) sẽ được nhận theo tên cột.
+        Cột mã định danh cá nhân được bỏ qua, không lưu.</p>
       ${st.mode === "paste"
         ? `<label class="field">Trong Excel, chọn các ô cần nhập, nhấn Ctrl + C, rồi bấm vào ô dưới đây và nhấn Ctrl + V
              <textarea id="impText" rows="10" spellcheck="false" style="font-family:ui-monospace,Consolas,monospace;font-size:14px;white-space:pre;overflow:auto" placeholder="Nguyễn Minh Anh	05/09/2018	Nữ	Nguyễn Văn Hùng	0912345678">${esc(st.text)}</textarea></label>`
@@ -83,13 +84,13 @@ function step2() {
       <div class="row"><span class="tag green">${p.validCount} dòng hợp lệ</span>${p.errorCount ? `<span class="tag red">${p.errorCount} dòng lỗi</span>` : ""}</div>
       ${p.errorCount ? `<p class="notice red" style="margin:0">Các dòng lỗi được tô đỏ và <b>sẽ không được lưu</b>. Thầy/cô có thể quay lại sửa, hoặc lưu các dòng hợp lệ trước rồi nhập bổ sung sau.</p>` : ""}
       <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Dòng</th><th>Họ và tên</th><th>Ngày sinh</th><th>Giới tính</th><th>Phụ huynh</th><th>Số điện thoại</th><th>Ghi chú sức khỏe</th><th>Kết quả</th></tr></thead>
+        <thead><tr><th>Dòng</th><th>Họ và tên</th><th>Ngày sinh</th><th>Giới tính</th><th>Phụ huynh</th><th>Số điện thoại</th><th>Phụ huynh thứ hai</th><th>Số điện thoại</th><th>Ghi chú sức khỏe</th><th>Kết quả</th></tr></thead>
         <tbody>${p.rows.map((r) => {
           const v = r.value;
           const bad = r.errors.length > 0;
           return `<tr class="${bad ? "bad" : ""}"><td>${r.line}</td><td>${esc(v.fullName)}</td>
             <td>${esc(bad ? v.dob : fmt(v.dob))}</td><td>${esc(bad ? v.gender : genderLabel(v.gender))}</td>
-            <td>${esc(v.parentName)}</td><td>${esc(v.parentPhone)}</td><td>${esc(v.healthNote)}</td>
+            <td>${esc(v.parentName)}</td><td>${esc(v.parentPhone)}</td><td>${esc(v.parent2Name)}</td><td>${esc(v.parent2Phone)}</td><td>${esc(v.healthNote)}</td>
             <td class="${bad ? "errs" : ""}">${bad ? esc(r.errors.join(". ")) : `<span class="tag green">Hợp lệ</span>`}</td></tr>`;
         }).join("")}</tbody></table></div>
       <p class="err" id="impErr2" role="alert"></p>

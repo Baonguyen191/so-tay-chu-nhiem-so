@@ -3,7 +3,7 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 const SCHEMA_V1 = `
 CREATE TABLE users (
@@ -103,6 +103,16 @@ export function migrate(db) {
     db.transaction(() => {
       db.exec(SCHEMA_V1);
       db.pragma("user_version = 1");
+    })();
+  }
+  if (version < 2) {
+    // Phụ huynh thứ hai (thường là bố), vì danh sách của trường ghi cả mẹ và bố.
+    db.transaction(() => {
+      db.exec(`
+        ALTER TABLE students ADD COLUMN parent2_name  TEXT NOT NULL DEFAULT '';
+        ALTER TABLE students ADD COLUMN parent2_phone TEXT NOT NULL DEFAULT '';
+      `);
+      db.pragma("user_version = 2");
     })();
   }
 }

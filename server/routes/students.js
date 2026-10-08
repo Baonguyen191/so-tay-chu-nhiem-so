@@ -9,8 +9,8 @@ import { studentDto } from "./classes.js";
 const rawFile = express.raw({ type: "application/octet-stream", limit: "2mb" });
 
 const INSERT_STUDENT = `
-  INSERT INTO students (class_id, full_name, dob, gender, parent_name, parent_phone, health_note)
-  VALUES (@classId, @fullName, @dob, @gender, @parentName, @parentPhone, @healthNote)`;
+  INSERT INTO students (class_id, full_name, dob, gender, parent_name, parent_phone, health_note, parent2_name, parent2_phone)
+  VALUES (@classId, @fullName, @dob, @gender, @parentName, @parentPhone, @healthNote, @parent2Name, @parent2Phone)`;
 
 export function studentRoutes() {
   const r = Router();
@@ -30,7 +30,8 @@ export function studentRoutes() {
     const s = ensureValid(validateStudent(req.body, { today: localToday() }));
     db.prepare(`
       UPDATE students SET full_name = @fullName, dob = @dob, gender = @gender, parent_name = @parentName,
-        parent_phone = @parentPhone, health_note = @healthNote, updated_at = datetime('now')
+        parent_phone = @parentPhone, health_note = @healthNote, parent2_name = @parent2Name,
+        parent2_phone = @parent2Phone, updated_at = datetime('now')
       WHERE id = @id`).run({ ...s, id: st.id });
     res.json({ student: studentDto(db.prepare("SELECT * FROM students WHERE id = ?").get(st.id)) });
   });

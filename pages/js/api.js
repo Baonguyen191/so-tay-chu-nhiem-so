@@ -1,7 +1,7 @@
 // Bản giáo viên chạy trên GitHub Pages: không có máy chủ.
 // File này thay cho public/js/api.js khi build: các màn hình vẫn gọi api(method, path, body) như cũ,
 // nhưng dữ liệu được đọc/ghi ngay trong bộ nhớ của trình duyệt trên máy giáo viên.
-import { InputError, checkRows, parseFileWith, parsePastedText } from "./shared/import-core.js";
+import { FIELDS, InputError, checkRows, parseFileWith, parsePastedText } from "./shared/import-core.js";
 import { cleanText, isISODate, localToday, validateClass, validateStudent, validateUserProfile } from "./shared/validate.js";
 import { sortByVietnameseName } from "./shared/vnsort.js";
 import { LEVELS, STAR_REASONS, SUBJECTS } from "./shared/constants.js";
@@ -111,8 +111,8 @@ function studentInClass(classId, studentId) {
 function dateParam(d) {
   return isISODate(d) ? d : fail("Ngày không hợp lệ");
 }
-const studentFields = ({ id, fullName, dob, gender, parentName, parentPhone, healthNote }) =>
-  ({ id, fullName, dob, gender, parentName, parentPhone, healthNote });
+const studentFields = ({ id, fullName, dob, gender, parentName, parentPhone, healthNote, parent2Name = "", parent2Phone = "" }) =>
+  ({ id, fullName, dob, gender, parentName, parentPhone, healthNote, parent2Name, parent2Phone });
 
 function readClass(body, exceptId) {
   const c = ensure(validateClass(body));
@@ -228,7 +228,7 @@ const routes = [
     const c = getClass(cid);
     if (!Array.isArray(body?.rows) || !body.rows.length) fail("Không có học sinh nào để lưu");
     const existing = D.students.filter((s) => s.classId === c.id).map((s) => ({ full_name: s.fullName, dob: s.dob }));
-    const cells = body.rows.map((s) => ["fullName", "dob", "gender", "parentName", "parentPhone", "healthNote"].map((f) => (typeof s?.[f] === "string" ? s[f] : "")));
+    const cells = body.rows.map((s) => FIELDS.map((f) => (typeof s?.[f] === "string" ? s[f] : "")));
     const checked = checkRows(cells, { existing, today: localToday(), hasHeader: false, skipBlank: false });
     if (checked.errorCount) fail("Danh sách còn dòng lỗi, chưa lưu học sinh nào");
     for (const r of checked.rows) D.students.push({ id: newId(), classId: c.id, ...r.value });

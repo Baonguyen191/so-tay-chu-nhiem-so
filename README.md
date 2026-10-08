@@ -164,6 +164,15 @@ Xem mục [5. Nhập danh sách học sinh](#5-nhập-danh-sách-học-sinh).
 - Chỉ **Họ và tên** là bắt buộc. Các cột khác có thể bổ sung sau.
 - Ngày sinh ghi theo dạng **ngày/tháng/năm**.
 - Nếu Excel làm mất số 0 ở đầu số điện thoại, ứng dụng tự thêm lại.
+- Có thể ghi thêm **phụ huynh thứ hai** (ví dụ bố) ở hai cột cuối của file mẫu.
+
+### Dùng thẳng danh sách lớp do trường cấp
+
+Có thể tải lên nguyên file danh sách của trường (dạng "TT · Họ và tên trẻ · Ngày tháng năm sinh · Giới tính · Mã số định danh cá nhân · Họ và tên mẹ · Số điện thoại mẹ · Họ và tên bố · Số điện thoại bố · Ghi chú"), không cần sửa:
+- Các dòng tiêu đề phía trên ("DANH SÁCH HỌC SINH LỚP…", "Trường:…") và dòng tên cột bị gộp ô được tự bỏ qua.
+- **Mẹ** được ghi là phụ huynh thứ nhất, **bố** là phụ huynh thứ hai, mỗi người kèm số điện thoại.
+- Cột **mã số định danh cá nhân** (hoặc CCCD/CMND) luôn bị **bỏ qua, không lưu**.
+- Ô ngày sinh mà Excel đã hiểu ngược ngày/tháng (do máy cài kiểu tháng/ngày của Mỹ) được đọc lại theo đúng chữ số đang hiện trên Excel. Thầy/cô vẫn nên xem lại cột Ngày sinh ở bảng xem trước.
 
 ### Xem trước và lưu
 

@@ -64,7 +64,7 @@ export function render(view) {
    ${need === "none" ? "" : pool.length
      ? `<label class="field">Học sinh${need === "absent" ? " vắng ngày " + fmt(S.curDate) : ""}<select id="ms">${pool.map((x) => `<option value="${x.id}" ${x.id === sid ? "selected" : ""}>${esc(x.fullName)}</option>`).join("")}</select></label>`
      : `<p class="empty" style="padding:6px 0">${S.students.length ? "Lớp đi học đầy đủ, không có tin báo vắng cần gửi." : "Lớp chưa có học sinh."}</p>`}
-   ${s ? `<div class="sub">Gửi tới: <b>${esc(s.parentName || "(chưa có tên phụ huynh)")}</b>${s.parentPhone ? " · " + esc(s.parentPhone) : ""}</div>` : ""}
+   ${s ? `<div class="sub">Gửi tới: <b>${esc(s.parentName || "(chưa có tên phụ huynh)")}</b>${s.parentPhone ? " · " + esc(s.parentPhone) : ""}${s.parent2Name || s.parent2Phone ? `<br>hoặc: <b>${esc(s.parent2Name || "phụ huynh thứ hai")}</b>${s.parent2Phone ? " · " + esc(s.parent2Phone) : ""}` : ""}</div>` : ""}
   </div>
   <div>${text ? `<label class="sr" for="mo">Nội dung tin nhắn</label><textarea id="mo" class="msg-out">${esc(text)}</textarea>
    <div class="row" style="margin-top:12px"><button class="btn primary" id="mc">Sao chép tin nhắn</button>${s?.parentPhone ? `<a class="btn" href="sms:${esc(s.parentPhone)}">Mở tin nhắn SMS</a>` : ""}</div>

@@ -33,6 +33,8 @@ export function studentDto(row) {
     parentName: row.parent_name,
     parentPhone: row.parent_phone,
     healthNote: row.health_note,
+    parent2Name: row.parent2_name,
+    parent2Phone: row.parent2_phone,
   };
 }
 

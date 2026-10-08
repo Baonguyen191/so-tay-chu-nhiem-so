@@ -3,7 +3,9 @@
 import { cleanText, parseDate, stripDiacritics, validateStudent } from "./validate.js";
 
 export const MAX_IMPORT_ROWS = 300;
-export const FIELDS = ["fullName", "dob", "gender", "parentName", "parentPhone", "healthNote"];
+// Thứ tự cột khi danh sách không có dòng tên cột. Hai cột phụ huynh thứ hai thêm ở cuối để danh sách cũ vẫn đúng cột.
+export const FIELDS = ["fullName", "dob", "gender", "parentName", "parentPhone", "healthNote", "parent2Name", "parent2Phone"];
+const HEADER_SCAN_ROWS = 15;
 
 /** Lỗi do dữ liệu người dùng đưa vào (máy chủ trả mã 400 kèm thông báo này). */
 export class InputError extends Error {}
@@ -48,12 +50,28 @@ export function decodeText(buffer) {
   }
 }
 
-function cellValue(v) {
+/**
+ * Ô ngày có định dạng tháng-trước (ví dụ mm/dd/yyyy) mà người Việt gõ theo ngày-trước: Excel đã hiểu ngược.
+ * Lấy lại đúng các chữ số đang hiện trên màn hình Excel để đọc theo kiểu ngày/tháng/năm.
+ * Định dạng ngày mặc định của Excel ("mm-dd-yy", hiện theo cài đặt máy) thì giữ nguyên.
+ */
+function displayedDate(date, numFmt) {
+  const fmt = String(numFmt || "").toLowerCase();
+  if (fmt === "mm-dd-yy" || !/^m{1,2}[/.-]d{1,2}[/.-]y{2,4}$/.test(fmt)) return date;
+  const d = date.getUTCDate();
+  const m = date.getUTCMonth() + 1;
+  // Ngày > 12 thì không thể là do gõ ngày-trước bị hiểu ngược: giữ nguyên.
+  if (d > 12) return date;
+  return `${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}/${date.getUTCFullYear()}`;
+}
+
+function cellValue(v, numFmt) {
+  if (v instanceof Date) return Number.isNaN(v.getTime()) ? "" : displayedDate(v, numFmt);
   if (v === null || v === undefined) return "";
   if (v instanceof Date || typeof v === "number" || typeof v === "string") return v;
   if (typeof v === "boolean") return String(v);
   if (Array.isArray(v.richText)) return v.richText.map((t) => t.text).join("");
-  if ("result" in v) return cellValue(v.result);
+  if ("result" in v) return cellValue(v.result, numFmt);
   if ("text" in v) return cellValue(v.text);
   return "";
 }
@@ -71,7 +89,10 @@ export async function parseXlsxWith(ExcelJS, buffer) {
   const rows = [];
   ws.eachRow({ includeEmpty: true }, (row, n) => {
     const cells = [];
-    for (let c = 1; c <= Math.max(row.cellCount, 6); c++) cells.push(cellValue(row.getCell(c).value));
+    for (let c = 1; c <= Math.max(row.cellCount, FIELDS.length); c++) {
+      const cell = row.getCell(c);
+      cells.push(cellValue(cell.value, cell.numFmt));
+    }
     rows[n - 1] = cells;
   });
   return Array.from(rows, (r) => r || []);
@@ -88,25 +109,39 @@ export async function parseFileWith(loadExcelJS, buffer, fileName) {
 
 const isBlank = (v) => !(v instanceof Date) && cleanText(v) === "";
 
-/** Nhận ra cột từ dòng tiêu đề. Trả về null nếu dòng không phải tiêu đề. */
-function detectHeader(cells) {
+const norm = (c) => stripDiacritics(c).toLowerCase().replace(/\s+/g, " ").trim();
+
+/**
+ * Nhận ra cột từ dòng tên cột. Trả về null nếu dòng không phải dòng tên cột.
+ * Mẹ (hoặc "phụ huynh") là phụ huynh thứ nhất, bố/cha là phụ huynh thứ hai.
+ * Cột mã định danh / CCCD / CMND luôn bị bỏ qua: ứng dụng không lưu số định danh cá nhân.
+ */
+export function detectHeader(cells) {
   const map = {};
+  const put = (field, i) => { if (!(field in map)) map[field] = i; };
   cells.forEach((c, i) => {
     if (typeof c !== "string") return;
-    const h = stripDiacritics(c).toLowerCase().replace(/\s+/g, " ").trim();
-    if (!h) return;
-    let field = null;
-    if (/phu huynh|cha me|bo me|nguoi giam ho/.test(h)) field = /dien thoai|sdt|so dt/.test(h) ? "parentPhone" : "parentName";
-    else if (/dien thoai|sdt|so dt|phone/.test(h)) field = "parentPhone";
-    else if (/ngay sinh|^ns$/.test(h)) field = "dob";
-    else if (/gioi tinh|^gioi$|nam\/nu/.test(h)) field = "gender";
-    else if (/suc khoe|ghi chu|luu y/.test(h)) field = "healthNote";
-    else if (/^(stt|tt|so tt)$/.test(h)) field = "skip";
-    else if (/ho va ten|ho ten|ten hoc sinh|^hoc sinh$|^ten$/.test(h)) field = "fullName";
-    if (field && field !== "skip" && !(field in map)) map[field] = i;
+    const h = norm(c);
+    if (!h || /dinh danh|cccd|cmnd|can cuoc|chung minh/.test(h)) return;
+    const isPhone = /dien thoai|\bsdt\b|\bso dt\b|phone/.test(h);
+    const both = /\b(cha|bo) me\b/.test(h);
+    const mother = /\bme\b/.test(h) && !both;
+    const father = /\b(bo|cha)\b/.test(h) && !both;
+    const parent = both || /phu huynh|nguoi giam ho/.test(h);
+    if (father) put(isPhone ? "parent2Phone" : "parent2Name", i);
+    else if (mother || parent) {
+      const key = isPhone ? "parentPhone" : "parentName";
+      put(key in map ? (isPhone ? "parent2Phone" : "parent2Name") : key, i);
+    } else if (isPhone) put("parentPhone", i);
+    else if (/ngay sinh|ngay thang nam sinh|^nam sinh$|^ns$/.test(h)) put("dob", i);
+    else if (/gioi tinh|^gioi$|nam\/nu/.test(h)) put("gender", i);
+    else if (/suc khoe|ghi chu|luu y/.test(h)) put("healthNote", i);
+    else if (/ho va ten|ho ten|ten hoc sinh|^hoc sinh$|^ten$/.test(h)) put("fullName", i);
   });
   return "fullName" in map ? map : null;
 }
+
+const sameHeader = (a, b) => a.length === b.length && a.every((v, i) => norm(String(v ?? "")) === norm(String(b[i] ?? "")));
 
 /**
  * Chuyển các dòng thô thành danh sách học sinh đã kiểm tra.
@@ -119,9 +154,19 @@ export function checkRows(rows, { existing = [], today, hasHeader, skipBlank = t
   const lines = rows.map((cells, i) => ({ line: i + 1, cells })).filter((r) => !skipBlank || r.cells.some((c) => !isBlank(c)));
   if (!lines.length) throw new InputError("Không có dòng dữ liệu nào");
 
-  let map = hasHeader === false ? null : detectHeader(lines[0].cells);
-  if (map) lines.shift();
-  else {
+  // Tìm dòng tên cột trong vài dòng đầu (bỏ qua các dòng tiêu đề như "DANH SÁCH HỌC SINH LỚP 1A6").
+  let map = null;
+  if (hasHeader !== false) {
+    const at = lines.slice(0, HEADER_SCAN_ROWS).findIndex((r) => detectHeader(r.cells));
+    if (at >= 0) {
+      map = detectHeader(lines[at].cells);
+      const header = lines[at].cells;
+      lines.splice(0, at + 1);
+      // Ô tên cột gộp nhiều dòng trong Excel: dòng tên cột bị lặp lại.
+      while (lines.length && sameHeader(lines[0].cells, header)) lines.shift();
+    }
+  }
+  if (!map) {
     // Không có tiêu đề: theo thứ tự cột của file mẫu. Bỏ cột STT nếu cột đầu toàn là số.
     const sttFirst = lines.every((r) => /^\d{1,3}$/.test(cleanText(r.cells[0])));
     map = Object.fromEntries(FIELDS.map((f, i) => [f, i + (sttFirst ? 1 : 0)]));

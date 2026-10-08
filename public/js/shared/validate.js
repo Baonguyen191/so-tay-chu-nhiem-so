@@ -96,6 +96,11 @@ export function parseGender(value) {
   return { error: "Giới tính phải là Nam hoặc Nữ" };
 }
 
+/** Đổi phần đầu thông báo lỗi "Số điện thoại…" để biết lỗi ở ô nào. */
+function withLabel(result, label) {
+  return result.error ? { error: result.error.replace(/^Số điện thoại/, label) } : result;
+}
+
 function optionalText(value, label, max) {
   const v = cleanText(value);
   if (v.length > max) return { error: `${capitalize(label)} dài quá ${max} ký tự` };
@@ -121,6 +126,8 @@ export function validateStudent(input = {}, { today } = {}) {
     parentName: personName(input.parentName, "họ tên phụ huynh", { required: false }),
     parentPhone: parsePhone(input.parentPhone),
     healthNote: optionalText(input.healthNote, "ghi chú sức khỏe", 300),
+    parent2Name: personName(input.parent2Name, "họ tên phụ huynh thứ hai", { required: false }),
+    parent2Phone: withLabel(parsePhone(input.parent2Phone), "Số điện thoại phụ huynh thứ hai"),
   });
 }
 

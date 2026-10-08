@@ -16,7 +16,45 @@ test("dán từ Excel: đọc đúng các cột cách nhau bằng tab", () => {
   assert.deepEqual(r.rows[0].value, {
     fullName: "Nguyễn Minh Anh", dob: "2018-09-05", gender: "F",
     parentName: "Nguyễn Văn Hùng", parentPhone: "0912345678", healthNote: "Dị ứng hải sản",
+    parent2Name: "", parent2Phone: "",
   });
+});
+
+test("danh sách kiểu của trường: dòng tiêu đề, tên cột gộp ô, mẹ và bố, bỏ cột mã định danh", async () => {
+  // Dữ liệu giả, dựng đúng cấu trúc danh sách lớp do trường cấp.
+  const ID = "031999000111";
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Sheet1");
+  ws.getRow(2).values = ["DANH SÁCH HỌC SINH LỚP 1A9"];
+  ws.getRow(3).values = ["Trường: Tiểu học Thử Nghiệm. Năm học 2026- 2027"];
+  const header = ["TT", "Họ và tên trẻ", "Ngày tháng năm sinh", "Giới tính", "Mã số định danh cá nhân", "Họ và tên mẹ", "Số điện thoại mẹ", "Họ và tên bố", "Số điện thoại bố", "Ghi chú"];
+  for (const r of [4, 5, 6, 7]) ws.getRow(r).values = header; // ô tên cột gộp 4 dòng
+  ws.getRow(8).values = [1, "Lê Bảo An", "25/09/2020", "Nam", Number(ID), "Phạm Thị Hoa", 912000111, "Lê Văn Tùng", 988000222, ""];
+  // Người gõ 05/09/2020 (ngày 5 tháng 9) nhưng Excel hiểu theo kiểu Mỹ thành ngày 9 tháng 5.
+  ws.getRow(9).values = [2, "Vũ Minh Châu", new Date(Date.UTC(2020, 4, 9)), "Nữ", 31999000222, "", null, "Vũ Văn Bình", 977000333, "Dị ứng sữa"];
+  for (const r of [8, 9]) ws.getCell(r, 3).numFmt = "mm/dd/yyyy";
+  // Ô ngày dùng định dạng ngày mặc định của Excel thì giữ nguyên.
+  ws.getRow(10).values = [3, "Đào Thu Hà", new Date(Date.UTC(2020, 1, 3)), "Nữ"];
+  ws.getCell(10, 3).numFmt = "mm-dd-yy";
+
+  const r = checkRows(await parseXlsx(Buffer.from(await wb.xlsx.writeBuffer())), { today: TODAY });
+  assert.equal(r.validCount, 3);
+  assert.deepEqual(r.rows.map((x) => x.line), [8, 9, 10]);
+  assert.deepEqual(r.rows[0].value, {
+    fullName: "Lê Bảo An", dob: "2020-09-25", gender: "M",
+    parentName: "Phạm Thị Hoa", parentPhone: "0912000111", healthNote: "",
+    parent2Name: "Lê Văn Tùng", parent2Phone: "0988000222",
+  });
+  assert.equal(r.rows[1].value.dob, "2020-09-05", "đọc theo chữ số đang hiện trên Excel (ngày/tháng)");
+  assert.equal(r.rows[1].value.parentName, "");
+  assert.equal(r.rows[1].value.parent2Phone, "0977000333");
+  assert.equal(r.rows[1].value.healthNote, "Dị ứng sữa");
+  assert.equal(r.rows[2].value.dob, "2020-02-03");
+  // Mã định danh không được lưu ở bất kỳ đâu.
+  for (const row of r.rows) {
+    assert.ok(!JSON.stringify(row.value).includes(ID.slice(1)), "không lưu mã định danh");
+    assert.ok(!JSON.stringify(row.value).includes("31999000222"));
+  }
 });
 
 test("báo lỗi từng dòng: thiếu tên, sai ngày sinh, số điện thoại không hợp lệ", () => {
@@ -188,4 +226,22 @@ test("API học sinh: thêm, sửa, xóa kèm dữ liệu liên quan", async () 
   await c.post(`/api/classes/${classId}/stars`, { studentId: id, date: "2026-10-06", delta: 1, reason: "Tiến bộ" });
   assert.equal((await c.delete(`/api/students/${id}`)).status, 200);
   assert.equal(db.prepare("SELECT COUNT(*) n FROM stars").get().n, 0);
+});
+
+test("API: lưu và đọc lại phụ huynh thứ hai", async () => {
+  const { c, classId } = await classSetup();
+  const preview = await c.post(`/api/classes/${classId}/students/import/preview`, {
+    text: "Họ và tên trẻ\tHọ và tên mẹ\tSố điện thoại mẹ\tHọ và tên bố\tSố điện thoại bố\nLê Bảo An\tPhạm Thị Hoa\t912000111\tLê Văn Tùng\t988000222",
+  });
+  assert.equal(preview.body.validCount, 1);
+  const rows = preview.body.rows.map((r) => r.value);
+  assert.equal((await c.post(`/api/classes/${classId}/students/import`, { rows })).status, 201);
+  const st = (await c.get(`/api/classes/${classId}/data`)).body.students.find((s) => s.fullName === "Lê Bảo An");
+  assert.equal(st.parentName, "Phạm Thị Hoa");
+  assert.equal(st.parent2Name, "Lê Văn Tùng");
+  assert.equal(st.parent2Phone, "0988000222");
+
+  const upd = await c.put(`/api/students/${st.id}`, { ...st, parent2Phone: "123" });
+  assert.equal(upd.status, 400);
+  assert.match(upd.body.error, /phụ huynh thứ hai/);
 });
