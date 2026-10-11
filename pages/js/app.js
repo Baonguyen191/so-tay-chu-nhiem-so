@@ -10,8 +10,9 @@ import * as cmt from "./views/cmt.js";
 import * as star from "./views/star.js";
 import * as msg from "./views/msg.js";
 import * as lop from "./views/lop.js";
+import * as report from "./views/report.js";
 
-const VIEWS = { home, att, cmt, star, msg, lop };
+const VIEWS = { home, att, cmt, star, msg, report, lop };
 const CLASS_KEY = "sotay-gv-lop";
 
 function show(screen) {

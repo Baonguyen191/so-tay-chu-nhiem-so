@@ -5,6 +5,9 @@ import { FIELDS, InputError, checkRows, parseFileWith, parsePastedText } from ".
 import { cleanText, isISODate, localToday, validateClass, validateStudent, validateUserProfile } from "./shared/validate.js";
 import { sortByVietnameseName } from "./shared/vnsort.js";
 import { LEVELS, STAR_REASONS, SUBJECTS } from "./shared/constants.js";
+import { buildAttendance } from "./shared/stats.js";
+import { classReport, periodRange } from "./shared/report.js";
+import { reportWorkbook } from "./shared/report-xlsx.js";
 
 const KEY = "sotay-gv-v1";
 const EXCELJS_URL = "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js";
@@ -190,6 +193,22 @@ const routes = [
       comments: D.comments.filter((x) => ids.has(x.studentId)),
       stars: D.stars.filter((x) => ids.has(x.studentId)),
     });
+  }],
+
+  // File Excel báo cáo tuần/tháng, tạo ngay trong trình duyệt. Trả về đối tượng có blob() giống Response.
+  ["GET", /^\/classes\/(\d+)\/report\.xlsx$/, async ([cid], _body, query) => {
+    const c = getClass(cid);
+    const kind = query.get("kind") === "month" ? "month" : "week";
+    const date = dateParam(query.get("date"));
+    const period = periodRange(kind, date);
+    const ids = new Set(D.students.filter((s) => s.classId === c.id).map((s) => s.id));
+    const att = buildAttendance(D.days.filter((d) => d.classId === c.id).map((d) => d.date), D.absences.filter((a) => ids.has(a.studentId)));
+    const students = sortByVietnameseName(D.students.filter((s) => s.classId === c.id).map(studentFields));
+    const report = classReport({ students, att, comments: D.comments.filter((x) => ids.has(x.studentId)), stars: D.stars.filter((x) => ids.has(x.studentId)) }, period.from, period.to);
+    const teacher = D.profile ? `${D.profile.title} ${D.profile.fullName}` : "";
+    const buf = await reportWorkbook(await loadExcelJS(), { cls: classDto(c), teacher, period, report });
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    return { blob: async () => blob, headers: new Headers() };
   }],
 
   ["POST", /^\/classes\/(\d+)\/students$/, ([cid], body) => {

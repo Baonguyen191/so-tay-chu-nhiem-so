@@ -59,6 +59,25 @@ function saveClass(db, sql, params) {
   }
 }
 
+/** Toàn bộ dữ liệu của một lớp (không kiểm tra quyền: nơi gọi phải kiểm tra trước). */
+export function classBundle(db, classId) {
+  const row = db.prepare(`${CLASS_SELECT} WHERE c.id = ?`).get(classId);
+  const students = sortByVietnameseName(
+    db.prepare("SELECT * FROM students WHERE class_id = ?").all(classId).map(studentDto),
+  );
+  const days = db.prepare("SELECT date FROM attendance_days WHERE class_id = ? ORDER BY date").pluck().all(classId);
+  const absences = db.prepare(`
+    SELECT a.student_id AS studentId, a.date, a.status FROM absences a
+    JOIN students s ON s.id = a.student_id WHERE s.class_id = ?`).all(classId);
+  const comments = db.prepare(`
+    SELECT c.id, c.student_id AS studentId, c.date, c.subject, c.level, c.text FROM comments c
+    JOIN students s ON s.id = c.student_id WHERE s.class_id = ? ORDER BY c.date, c.id`).all(classId);
+  const stars = db.prepare(`
+    SELECT x.id, x.student_id AS studentId, x.date, x.delta, x.reason FROM stars x
+    JOIN students s ON s.id = x.student_id WHERE s.class_id = ? ORDER BY x.date, x.id`).all(classId);
+  return { class: classDto(row), students, days, absences, comments, stars };
+}
+
 export function classRoutes() {
   const r = Router();
 
@@ -73,21 +92,7 @@ export function classRoutes() {
   r.get("/classes/:cid/data", requireAuth, (req, res) => {
     const { db } = req.app.locals;
     const cls = getAccessibleClass(db, req.user, idParam(req.params.cid));
-    const row = db.prepare(`${CLASS_SELECT} WHERE c.id = ?`).get(cls.id);
-    const students = sortByVietnameseName(
-      db.prepare("SELECT * FROM students WHERE class_id = ?").all(cls.id).map(studentDto),
-    );
-    const days = db.prepare("SELECT date FROM attendance_days WHERE class_id = ? ORDER BY date").pluck().all(cls.id);
-    const absences = db.prepare(`
-      SELECT a.student_id AS studentId, a.date, a.status FROM absences a
-      JOIN students s ON s.id = a.student_id WHERE s.class_id = ?`).all(cls.id);
-    const comments = db.prepare(`
-      SELECT c.id, c.student_id AS studentId, c.date, c.subject, c.level, c.text FROM comments c
-      JOIN students s ON s.id = c.student_id WHERE s.class_id = ? ORDER BY c.date, c.id`).all(cls.id);
-    const stars = db.prepare(`
-      SELECT x.id, x.student_id AS studentId, x.date, x.delta, x.reason FROM stars x
-      JOIN students s ON s.id = x.student_id WHERE s.class_id = ? ORDER BY x.date, x.id`).all(cls.id);
-    res.json({ class: classDto(row), students, days, absences, comments, stars });
+    res.json(classBundle(db, cls.id));
   });
 
   r.post("/admin/classes", requireAdmin, (req, res) => {

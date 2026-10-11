@@ -10,8 +10,9 @@ import * as cmt from "./views/cmt.js";
 import * as star from "./views/star.js";
 import * as msg from "./views/msg.js";
 import * as admin from "./views/admin.js";
+import * as report from "./views/report.js";
 
-const VIEWS = { home, att, cmt, star, msg, admin };
+const VIEWS = { home, att, cmt, star, msg, report, admin };
 
 function show(screen) {
   for (const id of ["screen-loading", "screen-auth", "screen-app"]) $("#" + id).hidden = id !== screen;
@@ -163,7 +164,8 @@ function render() {
   $$(".nav [data-v]").forEach((b) => b.toggleAttribute("aria-current", false));
   $(`.nav [data-v="${S.view}"]`)?.setAttribute("aria-current", "page");
   const view = $("#view");
-  if (S.view !== "admin" && !S.cls) {
+  const withoutClass = S.view === "admin" || (VIEWS[S.view].worksWithoutClass && S.user.role === "admin");
+  if (!withoutClass && !S.cls) {
     view.innerHTML = noClass();
     const g = $("#goAdmin");
     if (g) g.onclick = () => go("admin");

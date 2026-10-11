@@ -44,11 +44,13 @@ Mã nguồn bản giáo viên nằm ở thư mục `pages/`. Mỗi lần đẩy 
 | **Nhận xét** | Ghi nhận xét theo 3 mức của Thông tư 27/2020/TT-BGDĐT: Hoàn thành tốt / Hoàn thành / Chưa hoàn thành. Có câu gợi ý sẵn. |
 | **Ngôi sao** | Tặng hoặc trừ sao theo tuần, kèm bảng xếp hạng 3 em đứng đầu. |
 | **Phụ huynh** | Mẫu tin nhắn tự điền tên học sinh, tên lớp, tên giáo viên: báo vắng, khen ngợi, nhắc nhở, tổng kết tuần, thông báo chung. Sao chép rồi dán vào Zalo hoặc SMS. |
+| **Báo cáo** | Tổng hợp **theo tuần hoặc theo tháng**: số buổi, có mặt, vắng có phép/không phép, tỉ lệ chuyên cần, số nhận xét theo 3 mức, số sao của từng em và cả lớp; đánh dấu em cần quan tâm. Nút **Tải Excel**. |
 
 **Ban giám hiệu (Quản trị)** có thêm mục **Quản trị**:
 - tạo, sửa, khóa tài khoản giáo viên và đặt lại mật khẩu;
 - tạo lớp (tên lớp, khối, năm học, tên trường) và phân công giáo viên chủ nhiệm;
-- sao lưu và khôi phục toàn bộ dữ liệu.
+- sao lưu và khôi phục toàn bộ dữ liệu;
+- **Báo cáo → Toàn trường**: bảng tất cả các lớp theo tuần/tháng (lọc theo năm học, khối) với tỉ lệ chuyên cần, lượt vắng, số em cần quan tâm, và **lớp nào hôm nay chưa điểm danh**. Bấm "Xem lớp" để xem chi tiết một lớp.
 
 Một giáo viên có thể chủ nhiệm nhiều lớp qua các năm. Ô chọn lớp ở đầu trang dùng để chuyển giữa các lớp.
 
@@ -270,20 +272,24 @@ Lệnh này tạo lớp 3A với 20 học sinh mẫu, khoảng một tháng đi�
 
 Thuê một máy chủ ảo nhỏ (1 CPU, 1 GB RAM là đủ) của một nhà cung cấp tại Việt Nam, giá tham khảo khoảng **100.000–200.000 đồng/tháng**. Dữ liệu học sinh khi đó được lưu trong nước.
 
-Người phụ trách kỹ thuật làm các bước sau:
-1. Cài Node.js 22+ lên máy chủ và chép thư mục ứng dụng lên.
-2. Chạy `npm install --omit=dev`.
-3. Cho ứng dụng tự khởi động cùng máy chủ, ví dụ bằng `pm2` hoặc `systemd`, với biến môi trường `TRUST_PROXY=1`.
-4. Cài **Caddy** làm cổng HTTPS. File `Caddyfile` chỉ cần 3 dòng:
+**Cài đặt bằng một lệnh** (VPS chạy Ubuntu 22.04 hoặc 24.04):
+
+1. Thuê VPS, chọn hệ điều hành **Ubuntu 24.04**.
+2. Chuẩn bị tên miền, ví dụ `sotay.tentruong.edu.vn`, và trỏ tên miền về địa chỉ IP của VPS. Chưa có tên miền thì dùng tạm tên miền miễn phí theo IP: VPS có IP `103.20.30.40` thì dùng `103-20-30-40.sslip.io`.
+3. Mở cửa sổ dòng lệnh của VPS (qua SSH hoặc nút "Console" trên trang quản lý VPS), đăng nhập bằng `root`, rồi dán lệnh sau (thay tên miền của trường):
 
    ```
-   sotay.tentruong.edu.vn {
-       reverse_proxy localhost:3000
-   }
+   curl -fsSL https://raw.githubusercontent.com/Baonguyen191/so-tay-chu-nhiem-so/main/deploy/cai-dat-vps.sh | DOMAIN=sotay.tentruong.edu.vn bash
    ```
 
-   Caddy tự xin chứng chỉ HTTPS miễn phí.
-5. Hằng tuần vẫn tải file sao lưu về như mục 6.
+4. Chờ vài phút. Khi thấy dòng **"Xong. Mở https://…"**, mở địa chỉ đó để tạo tài khoản quản trị đầu tiên.
+
+Lệnh này tự làm hết: cài Node.js và Caddy (tự xin chứng chỉ HTTPS miễn phí), chạy ứng dụng nền và tự khởi động lại khi VPS khởi động lại, bật tường lửa (chỉ mở SSH, HTTP, HTTPS), đặt múi giờ Việt Nam.
+
+- **Dữ liệu** nằm ở `/var/lib/so-tay/sotay.sqlite`.
+- **Tự sao lưu mỗi ngày** vào `/var/lib/so-tay/sao-luu/`, giữ 14 bản gần nhất. Vẫn nên tải file sao lưu về máy mỗi tuần (mục 6), phòng khi hỏng cả VPS.
+- **Cập nhật bản mới** (dữ liệu giữ nguyên, tự sao lưu trước khi cập nhật): `bash /opt/so-tay/app/deploy/cap-nhat.sh`
+- **Xem nhật ký khi có lỗi:** `journalctl -u so-tay -n 50`
 
 ### Cách C. Dịch vụ đám mây có sẵn (Render, Railway, Fly.io…)
 
@@ -327,7 +333,7 @@ Những việc nhà trường cần làm:
 | Lệnh | Tác dụng |
 |---|---|
 | `npm start` | Chạy ứng dụng với dữ liệu thật (`data/sotay.sqlite`) |
-| `npm test` | Chạy kiểm thử tự động: đăng nhập, phân quyền theo lớp, nhập hàng loạt, tỉ lệ chuyên cần, sao lưu |
+| `npm test` | Chạy kiểm thử tự động: đăng nhập, phân quyền theo lớp, nhập hàng loạt, tỉ lệ chuyên cần, báo cáo tuần/tháng, tổng hợp toàn trường, sao lưu |
 | `npm run demo` | Nạp dữ liệu demo vào `data/demo.sqlite` rồi chạy |
 | `npm run demo -- --chi-nap` | Chỉ nạp dữ liệu demo, không chạy |
 | `npm run dat-lai-mat-khau -- <tên> <mật khẩu>` | Đặt lại mật khẩu và mở khóa một tài khoản |

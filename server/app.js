@@ -12,6 +12,7 @@ import { classRoutes } from "./routes/classes.js";
 import { studentRoutes } from "./routes/students.js";
 import { recordRoutes } from "./routes/records.js";
 import { backupRoutes } from "./routes/backup.js";
+import { reportRoutes } from "./routes/reports.js";
 import { templateCsv, templateXlsx } from "./lib/template.js";
 
 /**
@@ -64,6 +65,7 @@ export function createApp({ db, dbFile = null, now = Date.now, bcryptRounds = 10
   api.use(studentRoutes());
   api.use(recordRoutes());
   api.use(backupRoutes());
+  api.use(reportRoutes());
   api.use(() => { throw notFound("Không có chức năng này"); });
   app.use("/api", api);
 
