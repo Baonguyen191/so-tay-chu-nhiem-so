@@ -98,10 +98,23 @@ $DOMAIN {
 EOF
 
 echo "==> Tường lửa: chỉ mở SSH, HTTP, HTTPS"
-ufw allow OpenSSH >/dev/null
-ufw allow 80/tcp >/dev/null
-ufw allow 443/tcp >/dev/null
-ufw --force enable >/dev/null
+if command -v netfilter-persistent >/dev/null && iptables -S INPUT | grep -q -- "-j REJECT"; then
+  # Ảnh Ubuntu của Oracle Cloud có sẵn luật iptables chặn mọi cổng trừ SSH:
+  # mở thêm 80, 443 ngay trước luật REJECT rồi lưu lại (không bật ufw để tránh xung đột).
+  for p in 80 443; do
+    if ! iptables -C INPUT -p tcp -m state --state NEW --dport "$p" -j ACCEPT 2>/dev/null; then
+      line=$(iptables -L INPUT --line-numbers | awk '/REJECT/{print $1; exit}')
+      iptables -I INPUT "$line" -p tcp -m state --state NEW --dport "$p" -j ACCEPT
+    fi
+  done
+  netfilter-persistent save >/dev/null
+  echo "    (Oracle Cloud: nhớ mở cổng 80, 443 trong Security List của mạng VCN)"
+else
+  ufw allow OpenSSH >/dev/null
+  ufw allow 80/tcp >/dev/null
+  ufw allow 443/tcp >/dev/null
+  ufw --force enable >/dev/null
+fi
 
 echo "==> Khởi động"
 systemctl daemon-reload
