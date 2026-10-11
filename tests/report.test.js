@@ -95,7 +95,7 @@ test("API tổng hợp toàn trường: chỉ quản trị; đánh dấu lớp c
   const { teacher, admin, classA, classB, emptyClass, sA } = await setup();
   assert.equal((await teacher.get("/api/admin/overview?kind=month&date=2026-10-01&today=2026-10-07")).status, 403);
 
-  await admin.put(`/api/classes/${classA}/attendance/2026-10-07/students/${sA}`, { status: "P" });
+  await teacher.put(`/api/classes/${classA}/attendance/2026-10-07/students/${sA}`, { status: "P" });
   const res = await admin.get("/api/admin/overview?kind=month&date=2026-10-01&today=2026-10-07");
   assert.equal(res.status, 200);
   const byId = Object.fromEntries(res.body.classes.map((c) => [c.id, c]));

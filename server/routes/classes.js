@@ -43,9 +43,9 @@ function readClassBody(db, body = {}) {
   let teacherId = null;
   if (body.teacherId !== null && body.teacherId !== undefined && body.teacherId !== "") {
     teacherId = Number(body.teacherId);
-    if (!Number.isSafeInteger(teacherId) || !db.prepare("SELECT 1 FROM users WHERE id = ?").get(teacherId)) {
-      throw badRequest("Giáo viên được phân công không tồn tại");
-    }
+    const t = Number.isSafeInteger(teacherId) ? db.prepare("SELECT role FROM users WHERE id = ?").get(teacherId) : null;
+    if (!t) throw badRequest("Giáo viên được phân công không tồn tại");
+    if (t.role !== "teacher") throw badRequest("Chỉ phân công được tài khoản giáo viên. Thành viên Ban giám hiệu có chủ nhiệm lớp thì dùng một tài khoản giáo viên riêng.");
   }
   return { ...value, teacherId };
 }

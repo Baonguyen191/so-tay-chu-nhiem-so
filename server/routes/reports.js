@@ -24,9 +24,19 @@ function reportFor(bundle, period) {
 export function reportRoutes() {
   const r = Router();
 
+  // Báo cáo một lớp (chỉ số liệu tổng hợp: không có số điện thoại, nội dung nhận xét).
+  // Giáo viên xem lớp mình; Ban giám hiệu xem mọi lớp để theo dõi.
+  r.get("/classes/:cid/report", requireAuth, (req, res) => {
+    const { db } = req.app.locals;
+    const cls = getAccessibleClass(db, req.user, idParam(req.params.cid), { allowAdmin: true });
+    const period = readPeriod(req.query);
+    const bundle = classBundle(db, cls.id);
+    res.json({ class: bundle.class, period, report: reportFor(bundle, period) });
+  });
+
   r.get("/classes/:cid/report.xlsx", requireAuth, async (req, res) => {
     const { db } = req.app.locals;
-    const cls = getAccessibleClass(db, req.user, idParam(req.params.cid));
+    const cls = getAccessibleClass(db, req.user, idParam(req.params.cid), { allowAdmin: true });
     const period = readPeriod(req.query);
     const bundle = classBundle(db, cls.id);
     const t = bundle.class.teacher;

@@ -108,8 +108,15 @@ export function requireAdmin(req, _res, next) {
   next();
 }
 
-/** Lấy lớp theo id và kiểm tra quyền: quản trị xem/sửa mọi lớp, giáo viên chỉ lớp mình chủ nhiệm. */
-export function getAccessibleClass(db, user, classId) {
+export const ADMIN_NO_CLASS_WORK = "Tài khoản Ban giám hiệu chỉ làm việc quản trị và xem báo cáo. Dữ liệu lớp do giáo viên chủ nhiệm cập nhật.";
+
+/**
+ * Lấy lớp theo id và kiểm tra quyền.
+ * Giáo viên: chỉ lớp mình chủ nhiệm. Quản trị: không làm việc thay giáo viên; chỉ được xem báo cáo
+ * khi nơi gọi cho phép rõ ràng ({ allowAdmin: true }).
+ */
+export function getAccessibleClass(db, user, classId, { allowAdmin = false } = {}) {
+  if (user.role === "admin" && !allowAdmin) throw forbidden(ADMIN_NO_CLASS_WORK);
   const cls = db.prepare("SELECT * FROM classes WHERE id = ?").get(classId);
   if (!cls || (user.role !== "admin" && cls.teacher_id !== user.id)) {
     throw new HttpError(404, "Không tìm thấy lớp, hoặc bạn không chủ nhiệm lớp này");
@@ -117,8 +124,9 @@ export function getAccessibleClass(db, user, classId) {
   return cls;
 }
 
-/** Lấy học sinh và kiểm tra quyền qua lớp của em đó. */
+/** Lấy học sinh và kiểm tra quyền qua lớp của em đó (chỉ giáo viên chủ nhiệm). */
 export function getAccessibleStudent(db, user, studentId) {
+  if (user.role === "admin") throw forbidden(ADMIN_NO_CLASS_WORK);
   const st = db.prepare("SELECT * FROM students WHERE id = ?").get(studentId);
   if (!st) throw new HttpError(404, "Không tìm thấy học sinh");
   try {

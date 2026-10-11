@@ -96,12 +96,51 @@ test("giáo viên không dùng được chức năng quản trị", async () => 
   assert.equal((await a.patch(`/api/admin/classes/${classA}`, { teacherId: null })).status, 403);
 });
 
-test("quản trị xem và sửa được mọi lớp", async () => {
-  const { admin, classB, studentB } = await setup();
-  assert.equal((await admin.get(`/api/classes/${classB}/data`)).status, 200);
-  const res = await admin.put(`/api/students/${studentB}`, { fullName: "Trần Gia Bảo", parentPhone: "0912 345 678" });
-  assert.equal(res.status, 200);
-  assert.equal(res.body.student.parentPhone, "0912345678");
+test("quản trị chỉ làm việc quản trị: không đọc, không sửa dữ liệu lớp; chỉ xem báo cáo tổng hợp", async () => {
+  const { admin, db, classB, studentB, commentB } = await setup();
+  db.prepare("UPDATE students SET parent_phone = '0912345678' WHERE id = ?").run(studentB);
+
+  const blocked = [
+    () => admin.get(`/api/classes/${classB}/data`),
+    () => admin.put(`/api/students/${studentB}`, { fullName: "Bị sửa" }),
+    () => admin.delete(`/api/students/${studentB}`),
+    () => admin.post(`/api/classes/${classB}/students`, { fullName: "Học Sinh Lạ" }),
+    () => admin.post(`/api/classes/${classB}/students/import/preview`, { text: "Học Sinh Lạ" }),
+    () => admin.put(`/api/classes/${classB}/attendance/2026-10-06`, { absences: {} }),
+    () => admin.put(`/api/classes/${classB}/attendance/2026-10-06/students/${studentB}`, { status: "K" }),
+    () => admin.post(`/api/classes/${classB}/comments`, { studentId: studentB, date: "2026-10-06", subject: "Toán", level: "C", text: "x" }),
+    () => admin.delete(`/api/comments/${commentB}`),
+    () => admin.post(`/api/classes/${classB}/stars`, { studentId: studentB, date: "2026-10-06", delta: 1, reason: "Tiến bộ" }),
+  ];
+  for (const [i, attempt] of blocked.entries()) {
+    const res = await attempt();
+    assert.equal(res.status, 403, `thử ${i}: ${JSON.stringify(res.body)}`);
+    assert.match(res.body.error, /Ban giám hiệu chỉ làm việc quản trị/);
+  }
+  assert.equal(db.prepare("SELECT full_name FROM students WHERE id = ?").get(studentB).full_name, "Trần Gia Bảo");
+
+  // Báo cáo tổng hợp: xem được, nhưng không lộ số điện thoại phụ huynh hay nội dung nhận xét.
+  const rep = await admin.get(`/api/classes/${classB}/report?kind=month&date=2026-10-01`);
+  assert.equal(rep.status, 200);
+  assert.equal(rep.body.report.rows[0].fullName, "Trần Gia Bảo");
+  assert.equal(rep.body.report.rows[0].T, 1);
+  const json = JSON.stringify(rep.body);
+  assert.ok(!json.includes("0912345678") && !json.includes("Giỏi"), "báo cáo không chứa số điện thoại, nội dung nhận xét");
+});
+
+test("chỉ phân công được tài khoản giáo viên; giáo viên đang chủ nhiệm không đổi được sang quản trị", async () => {
+  const { admin, adminId, aId, classA } = await setup();
+  const body = { name: "3A", grade: 3, schoolYear: "2026-2027", schoolName: "Trường Tiểu học Tân Minh" };
+  const res = await admin.patch(`/api/admin/classes/${classA}`, { ...body, teacherId: adminId });
+  assert.equal(res.status, 400);
+  assert.match(res.body.error, /Chỉ phân công được tài khoản giáo viên/);
+
+  const promote = await admin.patch(`/api/admin/users/${aId}`, { role: "admin" });
+  assert.equal(promote.status, 400);
+  assert.match(promote.body.error, /đang chủ nhiệm lớp 3A/);
+
+  assert.equal((await admin.patch(`/api/admin/classes/${classA}`, { ...body, teacherId: null })).status, 200);
+  assert.equal((await admin.patch(`/api/admin/users/${aId}`, { role: "admin" })).status, 200);
 });
 
 test("đổi phân công: giáo viên cũ mất quyền, giáo viên mới có quyền", async () => {

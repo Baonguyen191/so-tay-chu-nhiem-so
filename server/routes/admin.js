@@ -62,6 +62,12 @@ export function adminRoutes() {
     }));
     const role = body.role === undefined ? target.role : body.role;
     if (!["admin", "teacher"].includes(role)) throw badRequest("Vai trò không hợp lệ");
+    if (role === "admin" && target.role !== "admin") {
+      const classes = db.prepare("SELECT name FROM classes WHERE teacher_id = ?").pluck().all(id);
+      if (classes.length) {
+        throw badRequest(`Tài khoản này đang chủ nhiệm lớp ${classes.join(", ")}. Hãy phân công giáo viên khác cho lớp trước khi chuyển sang vai trò quản trị.`);
+      }
+    }
     const isLocked = body.isLocked === undefined ? !!target.is_locked : body.isLocked === true;
     if (id === req.user.id && (role !== "admin" || isLocked)) {
       throw badRequest("Không thể tự khóa hoặc tự bỏ quyền quản trị của chính mình");

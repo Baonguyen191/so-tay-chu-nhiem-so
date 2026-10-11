@@ -97,22 +97,31 @@ function renderLogin(message = "") {
 }
 
 /* ---------- Ứng dụng ---------- */
+// Ban giám hiệu chỉ làm việc quản trị và xem tổng hợp; các màn hình làm việc với lớp dành cho giáo viên.
+const TEACHER_VIEWS = ["home", "att", "cmt", "star", "msg", "report"];
+const ADMIN_VIEWS = ["report", "admin"];
+const isAdmin = () => S.user?.role === "admin";
+
 async function startApp(user) {
   S.user = user;
   show("screen-app");
-  $('.nav [data-v="admin"]').hidden = user.role !== "admin";
-  $("#who").innerHTML = `<b>${esc(user.title + " " + user.fullName)}</b>${user.role === "admin" ? "Quản trị" : "Giáo viên"}`;
+  const allowed = isAdmin() ? ADMIN_VIEWS : TEACHER_VIEWS;
+  $$(".nav [data-v]").forEach((b) => (b.hidden = !allowed.includes(b.dataset.v)));
+  $('.nav [data-v="report"]').lastChild.textContent = isAdmin() ? "Tổng hợp" : "Báo cáo";
+  $("#who").innerHTML = `<b>${esc(user.title + " " + user.fullName)}</b>${isAdmin() ? "Ban giám hiệu" : "Giáo viên"}`;
   $("#view").innerHTML = `<p class="loading">Đang tải dữ liệu…</p>`;
   try {
     await loadClasses();
-    const saved = Number(storageGet(`sotay-class-${user.id}`));
-    const pick = S.classes.find((c) => c.id === saved) || S.classes[0];
-    await loadClassData(pick?.id);
+    if (isAdmin()) await loadClassData(null); // không giữ dữ liệu lớp của phiên trước trong bộ nhớ
+    else {
+      const saved = Number(storageGet(`sotay-class-${user.id}`));
+      const pick = S.classes.find((c) => c.id === saved) || S.classes[0];
+      await loadClassData(pick?.id);
+    }
   } catch (e) {
     toast(e.message, { error: true });
   }
-  if (!S.cls && user.role === "admin") S.view = "admin";
-  if (S.view === "admin" && user.role !== "admin") S.view = "home";
+  if (!allowed.includes(S.view)) S.view = allowed[0];
   render();
 }
 
@@ -130,11 +139,22 @@ async function switchClass(id) {
 /** Tải lại danh sách lớp (sau khi quản trị tạo/sửa lớp). */
 async function refreshClasses() {
   await loadClasses();
+  if (isAdmin()) return;
   const still = S.cls && S.classes.find((c) => c.id === S.cls.id);
   await loadClassData(still ? S.cls.id : S.classes[0]?.id);
 }
 
 function header() {
+  if (isAdmin()) {
+    $("#title").textContent = "Ban giám hiệu";
+    $("#teacher").textContent = `${S.user.title} ${S.user.fullName} · Quản trị và tổng hợp toàn trường`;
+    $("#schoolName").textContent = S.classes[0]?.schoolName || "";
+    $("#dateInput").closest("label").hidden = true;
+    $("#classSel").hidden = true;
+    document.title = "Ban giám hiệu – Sổ tay Chủ nhiệm số";
+    return;
+  }
+  $("#dateInput").closest("label").hidden = false;
   const c = S.cls;
   $("#title").textContent = c ? `Lớp ${c.name}` : "Sổ tay Chủ nhiệm số";
   $("#teacher").textContent = c
@@ -164,8 +184,7 @@ function render() {
   $$(".nav [data-v]").forEach((b) => b.toggleAttribute("aria-current", false));
   $(`.nav [data-v="${S.view}"]`)?.setAttribute("aria-current", "page");
   const view = $("#view");
-  const withoutClass = S.view === "admin" || (VIEWS[S.view].worksWithoutClass && S.user.role === "admin");
-  if (!withoutClass && !S.cls) {
+  if (!isAdmin() && !S.cls) {
     view.innerHTML = noClass();
     const g = $("#goAdmin");
     if (g) g.onclick = () => go("admin");

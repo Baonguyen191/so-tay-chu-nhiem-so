@@ -307,7 +307,7 @@ Những gì ứng dụng đã làm:
 - **Mật khẩu** được băm bằng bcrypt. Không ai đọc được mật khẩu gốc, kể cả quản trị.
 - **Phiên đăng nhập** lưu trong cookie httpOnly: mã độc trên trang không đọc được cookie này. Phiên hết hạn sau 12 giờ.
 - **Khóa tạm 5 phút** sau 5 lần nhập sai mật khẩu.
-- **Phân quyền ở máy chủ:** giáo viên chỉ đọc và sửa được lớp mình chủ nhiệm. Sửa đường dẫn trên trình duyệt cũng không xem được lớp khác.
+- **Phân quyền ở máy chủ:** giáo viên chỉ đọc và sửa được lớp mình chủ nhiệm. Sửa đường dẫn trên trình duyệt cũng không xem được lớp khác. Ban giám hiệu chỉ xem được báo cáo tổng hợp của các lớp (không có số điện thoại phụ huynh, nội dung nhận xét) và không ghi được dữ liệu lớp. Chỉ phân công được tài khoản giáo viên làm chủ nhiệm.
 - **Chống XSS:** mọi dữ liệu hiển thị đều được mã hóa, nên một đoạn mã gõ vào ô ghi chú chỉ hiện ra như chữ thường.
 - **Chống CSRF:** mọi thao tác ghi phải kèm mã bí mật của phiên và đến từ chính trang của ứng dụng.
 - Mọi dữ liệu nhập vào đều được kiểm tra: tên, ngày sinh, số điện thoại, năm học…

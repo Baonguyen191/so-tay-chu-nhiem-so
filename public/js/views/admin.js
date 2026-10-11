@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { S, ui } from "../store.js";
 import { $, $$, closeDialog, copy, esc, openDialog, randomPassword, toast, withBusy, yearLabel } from "../util.js";
 import { TITLES } from "../shared/constants.js";
+import { openClassReport } from "./report.js";
 
 let tab = "users";
 let users = [];
@@ -178,17 +179,14 @@ function paintClasses(pane) {
         <td><b>${esc(c.name)}</b> <span class="muted">(khối ${c.grade})</span></td><td>${esc(yearLabel(c.schoolYear))}</td><td>${esc(c.schoolName)}</td>
         <td>${c.teacher ? esc(c.teacher.title + " " + c.teacher.fullName) : `<span class="tag amber">Chưa phân công</span>`}</td>
         <td>${c.studentCount}</td>
-        <td class="acts"><button class="btn" data-open-class="${c.id}">Mở lớp</button>
+        <td class="acts"><button class="btn" data-open-class="${c.id}">Xem báo cáo</button>
           <button class="btn" data-edit-class="${c.id}">Sửa</button>
           ${c.studentCount ? "" : `<button class="btn danger" data-del-class="${c.id}">Xóa</button>`}</td>
       </tr>`).join("")}</tbody></table></div>` : `<p class="empty panel">Chưa có lớp nào.</p>`}`;
 
   $("#addClass").onclick = () => classDialog(null);
   $$("[data-edit-class]", pane).forEach((b) => (b.onclick = () => classDialog(S.classes.find((c) => c.id === Number(b.dataset.editClass)))));
-  $$("[data-open-class]", pane).forEach((b) => (b.onclick = async () => {
-    await ui.switchClass(Number(b.dataset.openClass));
-    ui.go("home");
-  }));
+  $$("[data-open-class]", pane).forEach((b) => (b.onclick = () => openClassReport(Number(b.dataset.openClass))));
   $$("[data-del-class]", pane).forEach((b) => (b.onclick = () => {
     const c = S.classes.find((x) => x.id === Number(b.dataset.delClass));
     if (!confirm(`Xóa lớp ${c.name} (${yearLabel(c.schoolYear)})?`)) return;
@@ -213,7 +211,7 @@ function classDialog(c) {
       <div class="grid2">
         <label class="field">Năm học<input name="schoolYear" placeholder="2026–2027" value="${esc(c ? yearLabel(c.schoolYear) : currentSchoolYear())}"></label>
         <label class="field">Giáo viên chủ nhiệm<select name="teacherId"><option value="">— Chưa phân công —</option>
-          ${users.map((u) => `<option value="${u.id}" ${u.id === c?.teacherId ? "selected" : ""}>${esc(u.title + " " + u.fullName)}${u.isLocked ? " (đã khóa)" : ""}</option>`).join("")}</select></label>
+          ${users.filter((u) => u.role === "teacher").map((u) => `<option value="${u.id}" ${u.id === c?.teacherId ? "selected" : ""}>${esc(u.title + " " + u.fullName)}${u.isLocked ? " (đã khóa)" : ""}</option>`).join("")}</select></label>
       </div>
       <label class="field">Tên trường<input name="schoolName" maxlength="120" placeholder="Trường Tiểu học …" value="${esc(c?.schoolName || lastSchool)}"></label>
       <p class="err" id="cErr" role="alert"></p>

@@ -1,13 +1,23 @@
 // Màn hình "Báo cáo": tổng hợp tuần/tháng của lớp (tải Excel) và bảng toàn trường cho Ban giám hiệu.
+// Giáo viên: báo cáo lớp mình, tính từ dữ liệu lớp đã tải.
+// Ban giám hiệu: toàn trường, và báo cáo từng lớp ở chế độ chỉ xem (lấy số liệu tổng hợp từ máy chủ).
 import { api } from "../api.js";
 import { S, teacherName, ui } from "../store.js";
 import { $, $$, esc, fmt, todayISO, toast, withBusy, yearLabel } from "../util.js";
 import { classReport, periodRange, shiftPeriod } from "../shared/report.js";
 import { reportFileName } from "../shared/report-xlsx.js";
 
-const st = { tab: "class", kind: "week", date: null, year: "", grade: "" };
+const st = { tab: "school", classId: null, kind: "week", date: null, year: "", grade: "" };
 
 const pct = (r) => (r === null || r === undefined ? "—" : String(r).replace(".", ",") + "%");
+const isAdmin = () => S.user.role === "admin";
+
+/** Ban giám hiệu mở báo cáo chỉ xem của một lớp. */
+export function openClassReport(classId) {
+  st.tab = "class";
+  st.classId = classId;
+  ui.go("report");
+}
 
 function download(blob, name) {
   const a = document.createElement("a");
@@ -42,12 +52,11 @@ function bindPeriod(view, period) {
   $("#nowP").onclick = () => { st.date = null; ui.render(); };
 }
 
-/* ---------- Báo cáo một lớp ---------- */
-function renderClass(view, period) {
-  const rep = classReport({ students: S.students, att: S.att, comments: S.comments, stars: S.stars }, period.from, period.to);
+/* ---------- Bảng báo cáo một lớp (dùng chung cho giáo viên và Ban giám hiệu) ---------- */
+function classReportHtml(rep, period, { clickable }) {
   const t = rep.totals;
-  view.insertAdjacentHTML("beforeend", `${periodBar(period, true)}
-  ${!t.days ? `<p class="notice">Chưa có buổi nào được điểm danh trong ${period.kind === "week" ? "tuần" : "tháng"} này.</p>` : ""}
+  const name = (r) => (clickable ? `<button class="btn link" data-open="${r.id}">${esc(r.fullName)}</button>` : esc(r.fullName));
+  return `${!t.days ? `<p class="notice">Chưa có buổi nào được điểm danh trong ${period.kind === "week" ? "tuần" : "tháng"} này.</p>` : ""}
   <div class="stats">
     <div class="stat"><div class="n">${t.days}</div><div class="l">Buổi đã điểm danh</div></div>
     <div class="stat good"><div class="n">${pct(t.rate)}</div><div class="l">Tỉ lệ chuyên cần</div></div>
@@ -56,23 +65,57 @@ function renderClass(view, period) {
   </div>
   <p class="hint" style="margin-top:12px">Nhận xét trong kỳ: Hoàn thành tốt ${t.T} · Hoàn thành ${t.H} · Chưa hoàn thành ${t.C} · Ngôi sao ${t.stars}.
     "Cần quan tâm": vắng không phép từ 2 buổi, vắng tổng từ 3 buổi, hoặc có nhận xét "Chưa hoàn thành" trong kỳ.</p>
-  ${S.students.length ? `<div class="tbl-wrap"><table class="tbl">
+  ${rep.rows.length ? `<div class="tbl-wrap"><table class="tbl">
     <thead><tr><th class="num">STT</th><th>Họ và tên</th><th class="num">Có mặt</th><th class="num">Vắng CP</th><th class="num">Vắng KP</th><th class="num">Tỉ lệ</th>
       <th class="num">HTT</th><th class="num">HT</th><th class="num">CHT</th><th class="num">Sao</th></tr></thead>
     <tbody>${rep.rows.map((r, i) => `<tr>
       <td class="num">${i + 1}</td>
-      <td><button class="btn link" data-open="${r.id}">${esc(r.fullName)}</button>${r.care ? ` <span class="tag red">Cần quan tâm</span>` : ""}</td>
+      <td>${name(r)}${r.care ? ` <span class="tag red">Cần quan tâm</span>` : ""}</td>
       <td class="num">${r.present}/${r.days}</td><td class="num">${r.P}</td><td class="num">${r.K}</td><td class="num">${pct(r.rate)}</td>
       <td class="num">${r.T}</td><td class="num">${r.H}</td><td class="num">${r.C}</td><td class="num">${r.stars}</td></tr>`).join("")}
       <tr class="total"><td></td><td><b>Cả lớp</b></td><td class="num">${t.present}/${t.days * t.students}</td><td class="num">${t.P}</td><td class="num">${t.K}</td>
         <td class="num">${pct(t.rate)}</td><td class="num">${t.T}</td><td class="num">${t.H}</td><td class="num">${t.C}</td><td class="num">${t.stars}</td></tr>
-    </tbody></table></div>` : `<p class="empty panel">Lớp chưa có học sinh.</p>`}`);
+    </tbody></table></div>` : `<p class="empty panel">Lớp chưa có học sinh.</p>`}`;
+}
 
-  bindPeriod(view, period);
+function bindExcel(classId, className, period) {
   $("#xlsx").onclick = (e) => withBusy(e.currentTarget, async () => {
-    const res = await api("GET", `/classes/${S.cls.id}/report.xlsx?kind=${period.kind}&date=${period.from}`, undefined, { raw: true });
-    download(await res.blob(), reportFileName(S.cls.name, period));
+    const res = await api("GET", `/classes/${classId}/report.xlsx?kind=${period.kind}&date=${period.from}`, undefined, { raw: true });
+    download(await res.blob(), reportFileName(className, period));
     toast("Đã tải file Excel");
+  });
+}
+
+/** Giáo viên: báo cáo lớp mình, tính ngay trên máy từ dữ liệu lớp. */
+function renderTeacher(view, period) {
+  if (!S.cls) {
+    view.insertAdjacentHTML("beforeend", `<p class="empty panel">Chưa có lớp nào.</p>`);
+    return;
+  }
+  const rep = classReport({ students: S.students, att: S.att, comments: S.comments, stars: S.stars }, period.from, period.to);
+  view.insertAdjacentHTML("beforeend", `<p class="hint">Lớp ${esc(S.cls.name)} · ${esc(teacherName() ? "GVCN: " + teacherName() : "Chưa phân công GVCN")} · Năm học ${esc(yearLabel(S.cls.schoolYear))}</p>
+    ${periodBar(period, true)}${classReportHtml(rep, period, { clickable: true })}`);
+  bindPeriod(view, period);
+  bindExcel(S.cls.id, S.cls.name, period);
+}
+
+/** Ban giám hiệu: báo cáo chỉ xem của một lớp, lấy từ máy chủ. */
+function renderAdminClass(view, period) {
+  view.insertAdjacentHTML("beforeend", `<div class="row" style="margin-bottom:10px"><button class="btn ghost" type="button" id="backSchool">‹ Toàn trường</button></div>
+    <div id="classPane"><p class="loading">Đang tải…</p></div>`);
+  $("#backSchool").onclick = () => { st.tab = "school"; ui.render(); };
+  api("GET", `/classes/${st.classId}/report?kind=${period.kind}&date=${period.from}`).then(({ class: c, report }) => {
+    const pane = $("#classPane");
+    if (!pane) return;
+    const t = c.teacher ? `GVCN: ${c.teacher.title} ${c.teacher.fullName}` : "Chưa phân công GVCN";
+    pane.innerHTML = `<h2 style="margin-top:0">Lớp ${esc(c.name)}</h2>
+      <p class="hint">${esc(t)} · Năm học ${esc(yearLabel(c.schoolYear))} · Chế độ chỉ xem: dữ liệu lớp do giáo viên chủ nhiệm cập nhật.</p>
+      ${periodBar(period, true)}${classReportHtml(report, period, { clickable: false })}`;
+    bindPeriod(pane, period);
+    bindExcel(c.id, c.name, period);
+  }, (e) => {
+    const pane = $("#classPane");
+    if (pane) pane.innerHTML = `<p class="notice red">${esc(e.message)}</p>`;
   });
 }
 
@@ -122,10 +165,7 @@ function renderSchool(view, period) {
 
     $("#fYear").onchange = (e) => { st.year = e.target.value; ui.render(); };
     $("#fGrade").onchange = (e) => { st.grade = e.target.value; ui.render(); };
-    $$("[data-view-class]", pane).forEach((b) => (b.onclick = async () => {
-      st.tab = "class";
-      await ui.switchClass(Number(b.dataset.viewClass));
-    }));
+    $$("[data-view-class]", pane).forEach((b) => (b.onclick = () => openClassReport(Number(b.dataset.viewClass))));
   }, (e) => {
     const pane = $("#schoolPane");
     if (pane) pane.innerHTML = `<p class="notice red">${esc(e.message)}</p>`;
@@ -133,21 +173,9 @@ function renderSchool(view, period) {
 }
 
 export function render(view) {
-  const isAdmin = S.user.role === "admin";
-  if (!isAdmin) st.tab = "class";
   const period = periodRange(st.kind, st.date || S.curDate);
-  const name = S.cls ? `Lớp ${S.cls.name}` : "Lớp";
-  view.innerHTML = `<h2>Báo cáo</h2>
-    ${isAdmin ? `<div class="tabs" role="tablist">
-      <button type="button" role="tab" data-tab="class" aria-selected="${st.tab === "class"}">${esc(name)}</button>
-      <button type="button" role="tab" data-tab="school" aria-selected="${st.tab === "school"}">Toàn trường</button></div>` : ""}
-    ${st.tab === "class" && S.cls ? `<p class="hint">${esc(name)} · ${esc(teacherName() ? "GVCN: " + teacherName() : "Chưa phân công GVCN")} · Năm học ${esc(yearLabel(S.cls.schoolYear))}</p>` : ""}`;
-  $$("[data-tab]", view).forEach((b) => (b.onclick = () => { st.tab = b.dataset.tab; ui.render(); }));
-
-  if (st.tab === "school") renderSchool(view, period);
-  else if (S.cls) renderClass(view, period);
-  else view.insertAdjacentHTML("beforeend", `<p class="empty panel">Chưa có lớp nào.</p>`);
+  view.innerHTML = `<h2>${isAdmin() ? "Tổng hợp" : "Báo cáo"}</h2>`;
+  if (!isAdmin()) renderTeacher(view, period);
+  else if (st.tab === "class" && st.classId) renderAdminClass(view, period);
+  else renderSchool(view, period);
 }
-
-/** Màn hình này vẫn dùng được khi quản trị chưa chọn lớp (để xem toàn trường). */
-export const worksWithoutClass = true;
