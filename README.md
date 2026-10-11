@@ -254,19 +254,30 @@ Lệnh này tạo lớp 3A với 20 học sinh mẫu, khoảng một tháng đi�
 
 ### Cách A. Cloudflare Tunnel từ máy tính của trường (miễn phí)
 
-Ứng dụng vẫn chạy trên máy tính ở trường. Cloudflare tạo một đường dẫn https công khai trỏ về máy đó, nên dữ liệu vẫn nằm tại trường.
+Ứng dụng chạy trên một máy tính Windows 10/11 ở trường. Cloudflare tạo một địa chỉ https cố định trỏ về máy đó, không cần mở cổng modem, không cần IP tĩnh. **Dữ liệu vẫn nằm tại trường.**
 
-1. Tải chương trình `cloudflared` cho Windows tại trang hướng dẫn của Cloudflare (tìm "cloudflared download").
-2. Trong lúc ứng dụng đang chạy, mở một cửa sổ lệnh khác và gõ:
+Cần chuẩn bị: một **tên miền** (mua ở nhà đăng ký tên miền bất kỳ, khoảng 30.000–300.000 đồng/năm, hoặc tên miền `.edu.vn` của trường) và một tài khoản Cloudflare miễn phí.
 
+1. **Đưa tên miền vào Cloudflare:** đăng nhập https://dash.cloudflare.com → **Add a domain** → nhập tên miền → chọn gói **Free**. Cloudflare đưa ra 2 địa chỉ *nameserver*; vào trang quản lý tên miền ở nơi đã mua, thay nameserver bằng 2 địa chỉ đó. Chờ đến khi Cloudflare báo tên miền **Active** (vài phút đến vài giờ).
+2. **Tạo tunnel:** trong Cloudflare vào **Zero Trust** → **Networks** → **Tunnels** → **Create a tunnel** → chọn **Cloudflared** → đặt tên `so-tay` → **Save**. (Lần đầu vào Zero Trust, Cloudflare hỏi chọn gói: chọn gói **Free**, 0 USD.) Ở bước cài đặt, Cloudflare hiện một lệnh có đoạn mã dài sau chữ `service install`. **Chép đoạn mã đó** (đây là mã tunnel, giữ bí mật như mật khẩu).
+3. **Khai báo địa chỉ:** bấm **Next**, ở mục **Public Hostname** điền *Subdomain* `sotay`, *Domain* chọn tên miền của trường, *Service* chọn **HTTP** và `localhost:3000` → **Save tunnel**.
+4. **Cài trên máy tính của trường:** mở **PowerShell bằng quyền quản trị** (bấm Start, gõ `PowerShell`, chuột phải → *Run as administrator*), dán 2 dòng sau (thay mã tunnel ở bước 2):
+
+   ```powershell
+   $env:CF_TOKEN = "dán-mã-tunnel-vào-đây"
+   irm https://raw.githubusercontent.com/Baonguyen191/so-tay-chu-nhiem-so/main/deploy/windows/cai-dat-windows.ps1 | iex
    ```
-   cloudflared tunnel --url http://localhost:3000
-   ```
 
-3. Cửa sổ sẽ in ra một địa chỉ dạng `https://ten-ngau-nhien.trycloudflare.com`. Gửi địa chỉ này cho giáo viên.
+5. Trình duyệt tự mở `http://localhost:3000`: **tạo tài khoản quản trị đầu tiên ngay**. Bộ cài chờ tạo xong tài khoản rồi mới mở ra Internet.
+6. Gửi địa chỉ `https://sotay.<tên-miền-của-trường>` cho giáo viên.
 
-- Ưu điểm: miễn phí, không cần thuê máy chủ.
-- Nhược điểm: máy tính ở trường phải **luôn bật**. Với cách nhanh ở trên, địa chỉ **đổi mỗi lần chạy lại**. Muốn địa chỉ cố định, cần một tên miền riêng (khoảng vài trăm nghìn đồng/năm) và cấu hình "named tunnel" theo hướng dẫn của Cloudflare.
+Bộ cài tự làm hết: cài Node.js và `cloudflared`, chạy ứng dụng nền và tự chạy khi bật máy (kể cả khi chưa ai đăng nhập Windows), tắt chế độ ngủ khi cắm điện, chỉ cho quản trị viên máy đọc thư mục dữ liệu.
+
+- **Dữ liệu** nằm ở `C:\SoTay\du-lieu\sotay.sqlite`; **tự sao lưu mỗi ngày** vào `C:\SoTay\du-lieu\sao-luu\`, giữ 14 bản gần nhất.
+- Bản sao lưu nằm cùng ổ cứng với dữ liệu: **mỗi tuần chép file sao lưu ra USB hoặc Google Drive** (mục 6), phòng khi hỏng máy.
+- **Cập nhật bản mới:** chạy lại đúng lệnh ở bước 4 (tự sao lưu trước khi cập nhật, dữ liệu giữ nguyên).
+- **Xem lỗi:** mở file `C:\SoTay\nhat-ky.txt`.
+- Máy tính phải **luôn bật** trong giờ giáo viên cần dùng. Tắt máy thì giáo viên không vào được, nhưng dữ liệu không mất.
 
 ### Cách B. Thuê máy chủ ảo (VPS) giá rẻ (khuyên dùng khi dùng lâu dài)
 
