@@ -256,20 +256,21 @@ Lệnh này tạo lớp 3A với 20 học sinh mẫu, khoảng một tháng đi�
 
 Ứng dụng chạy trên một máy tính Windows 10/11 ở trường. Cloudflare tạo một địa chỉ https cố định trỏ về máy đó, không cần mở cổng modem, không cần IP tĩnh. **Dữ liệu vẫn nằm tại trường.**
 
-Cần chuẩn bị: một **tên miền** (mua ở nhà đăng ký tên miền bất kỳ, khoảng 30.000–300.000 đồng/năm, hoặc tên miền `.edu.vn` của trường) và một tài khoản Cloudflare miễn phí.
+Cần chuẩn bị: một **tên miền** (mua ở nhà đăng ký tên miền bất kỳ, khoảng 30.000–300.000 đồng/năm, hoặc tên miền `.edu.vn` của trường) và một tài khoản Cloudflare miễn phí. **Không cần thẻ thanh toán**, không cần vào mục Zero Trust.
 
 1. **Đưa tên miền vào Cloudflare:** đăng nhập https://dash.cloudflare.com → **Add a domain** → nhập tên miền → chọn gói **Free**. Cloudflare đưa ra 2 địa chỉ *nameserver*; vào trang quản lý tên miền ở nơi đã mua, thay nameserver bằng 2 địa chỉ đó. Chờ đến khi Cloudflare báo tên miền **Active** (vài phút đến vài giờ).
-2. **Tạo tunnel:** trong Cloudflare vào **Zero Trust** → **Networks** → **Tunnels** → **Create a tunnel** → chọn **Cloudflared** → đặt tên `so-tay` → **Save**. (Lần đầu vào Zero Trust, Cloudflare hỏi chọn gói: chọn gói **Free**, 0 USD.) Ở bước cài đặt, Cloudflare hiện một lệnh có đoạn mã dài sau chữ `service install`. **Chép đoạn mã đó** (đây là mã tunnel, giữ bí mật như mật khẩu).
-3. **Khai báo địa chỉ:** bấm **Next**, ở mục **Public Hostname** điền *Subdomain* `sotay`, *Domain* chọn tên miền của trường, *Service* chọn **HTTP** và `localhost:3000` → **Save tunnel**.
-4. **Cài trên máy tính của trường:** mở **PowerShell bằng quyền quản trị** (bấm Start, gõ `PowerShell`, chuột phải → *Run as administrator*), dán 2 dòng sau (thay mã tunnel ở bước 2):
+2. **Cài trên máy tính của trường:** mở **PowerShell bằng quyền quản trị** (bấm Start, gõ `PowerShell`, chuột phải → *Run as administrator*), dán 2 dòng sau (thay tên miền của trường):
 
    ```powershell
-   $env:CF_TOKEN = "dán-mã-tunnel-vào-đây"
+   $env:CF_HOSTNAME = "sotay.tentruong.xyz"
    irm https://raw.githubusercontent.com/Baonguyen191/so-tay-chu-nhiem-so/main/deploy/windows/cai-dat-windows.ps1 | iex
    ```
 
-5. Trình duyệt tự mở `http://localhost:3000`: **tạo tài khoản quản trị đầu tiên ngay**. Bộ cài chờ tạo xong tài khoản rồi mới mở ra Internet.
-6. Gửi địa chỉ `https://sotay.<tên-miền-của-trường>` cho giáo viên.
+3. Trình duyệt tự mở `http://localhost:3000`: **tạo tài khoản quản trị đầu tiên ngay**. Bộ cài chờ tạo xong tài khoản rồi mới mở ra Internet.
+4. Trình duyệt mở trang Cloudflare: đăng nhập, **bấm vào tên miền của trường**, bấm **Authorize**. Bộ cài tự tạo tunnel và bản ghi DNS.
+5. Gửi địa chỉ `https://sotay.<tên-miền-của-trường>` cho giáo viên.
+
+Đã có mã tunnel tạo trong Cloudflare Zero Trust thì dùng `$env:CF_TOKEN = "<mã tunnel>"` thay cho dòng `CF_HOSTNAME`.
 
 Bộ cài tự làm hết: cài Node.js và `cloudflared`, chạy ứng dụng nền và tự chạy khi bật máy (kể cả khi chưa ai đăng nhập Windows), tắt chế độ ngủ khi cắm điện, chỉ cho quản trị viên máy đọc thư mục dữ liệu.
 
