@@ -2,9 +2,12 @@
 # mở ra Internet qua Cloudflare Tunnel (không cần mở cổng modem, không cần IP tĩnh).
 #
 # Cách dùng: mở PowerShell bằng quyền quản trị (chuột phải > Run as administrator), dán:
-#   $env:CF_TOKEN = "<mã tunnel lấy từ Cloudflare>"
+#   $env:CF_HOSTNAME = "sotay.tentruong.xyz"
 #   irm https://raw.githubusercontent.com/Baonguyen191/so-tay-chu-nhiem-so/main/deploy/windows/cai-dat-windows.ps1 | iex
-# Không đặt CF_TOKEN thì chỉ cài ứng dụng (dùng trên máy này tại http://localhost:3000).
+# Tên miền phải đã ở trạng thái Active trong Cloudflare (gói Free, không cần thẻ). Bộ cài mở trình duyệt
+# để đăng nhập Cloudflare một lần, tự tạo tunnel và bản ghi DNS.
+# Đã có mã tunnel tạo trong Zero Trust thì đặt $env:CF_TOKEN thay cho CF_HOSTNAME.
+# Không đặt biến nào thì chỉ cài ứng dụng (dùng trên máy này tại http://localhost:3000).
 #
 # Chạy lại nhiều lần không sao: lần sau sao lưu dữ liệu, cập nhật mã mới nhất, dữ liệu giữ nguyên.
 & {
@@ -18,10 +21,23 @@ $Port = if ($env:SOTAY_PORT) { [int]$env:SOTAY_PORT } else { 3000 }
 $Root = "C:\SoTay"
 $AppDir = "$Root\app"
 $DataDir = "$Root\du-lieu"
+$CfDir = "$Root\cloudflared"
 $TaskName = "SoTayChuNhiem"
+$TunnelTask = "SoTayTunnel"
+$TunnelName = "so-tay"
 $Token = $env:CF_TOKEN
+$Hostname = if ($env:CF_HOSTNAME) { $env:CF_HOSTNAME.Trim().ToLower() -replace '^https?://', '' -replace '/.*$', '' } else { "" }
 
 function Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
+# Chương trình ngoài (cloudflared) ghi nhật ký ra stderr; PowerShell 5.1 coi đó là lỗi khi ErrorActionPreference = Stop.
+function Invoke-Native([scriptblock]$Block) {
+  $old = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try { & $Block } finally { $ErrorActionPreference = $old }
+}
+function Protect-Folder($path) {
+  icacls $path /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" | Out-Null
+}
 function Find-Cloudflared {
   @("${env:ProgramFiles(x86)}\cloudflared\cloudflared.exe", "$env:ProgramFiles\cloudflared\cloudflared.exe") |
     Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -51,7 +67,7 @@ Write-Host "    Node.js $(& $node -v)"
 
 Step "Thư mục dữ liệu (chỉ quản trị viên máy và hệ thống được đọc)"
 New-Item -ItemType Directory -Force $AppDir, "$DataDir\sao-luu" | Out-Null
-icacls $DataDir /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" | Out-Null
+Protect-Folder $DataDir
 
 $dbFile = "$DataDir\sotay.sqlite"
 if ((Test-Path $dbFile) -and (Test-Path "$AppDir\node_modules\better-sqlite3")) {
@@ -100,13 +116,18 @@ for %%F in ("$Root\nhat-ky.txt") do if %%~zF GTR 5000000 move /y "$Root\nhat-ky.
 "$node" "$AppDir\server\index.js" >> "$Root\nhat-ky.txt" 2>&1
 "@ | Set-Content -Encoding ascii "$Root\chay.cmd"
 
-$action = New-ScheduledTaskAction -Execute "cmd.exe" -Argument "/c `"$Root\chay.cmd`""
-$trigger = New-ScheduledTaskTrigger -AtStartup
-$principal = New-ScheduledTaskPrincipal -UserId "S-1-5-18" -LogonType ServiceAccount -RunLevel Highest
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable `
-  -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
-Start-ScheduledTask -TaskName $TaskName
+# Tác vụ chạy nền bằng tài khoản hệ thống, tự chạy khi bật máy (chưa cần ai đăng nhập), tự chạy lại khi bị tắt.
+function Register-StartupTask($name, $exe, $arguments) {
+  $action = New-ScheduledTaskAction -Execute $exe -Argument $arguments
+  $trigger = New-ScheduledTaskTrigger -AtStartup
+  $principal = New-ScheduledTaskPrincipal -UserId "S-1-5-18" -LogonType ServiceAccount -RunLevel Highest
+  $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable `
+    -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) -MultipleInstances IgnoreNew
+  if (Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue) { Stop-ScheduledTask -TaskName $name }
+  Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
+  Start-ScheduledTask -TaskName $name
+}
+Register-StartupTask $TaskName "cmd.exe" "/c `"$Root\chay.cmd`""
 
 $local = "http://localhost:$Port"
 $state = $null
@@ -124,14 +145,14 @@ if ($state.needsSetup) {
   Write-Host ""
   Write-Host "Mở $local trên máy này để tạo tài khoản quản trị (Ban giám hiệu) đầu tiên." -ForegroundColor Yellow
   Start-Process $local
-  if ($Token) {
+  if ($Token -or $Hostname) {
     Write-Host "Bộ cài chờ tạo xong tài khoản rồi mới mở ra Internet, để người lạ không tạo trước được..." -ForegroundColor Yellow
     while ((Invoke-RestMethod "$local/api/state").needsSetup) { Start-Sleep -Seconds 3 }
     Write-Host "    Đã có tài khoản quản trị."
   }
 }
 
-if ($Token) {
+if ($Token -or $Hostname) {
   Step "Cài Cloudflare Tunnel (mở ra Internet qua HTTPS)"
   $cf = Find-Cloudflared
   if (-not $cf) {
@@ -141,11 +162,42 @@ if ($Token) {
     $cf = Find-Cloudflared
     if (-not $cf) { throw "Cài cloudflared không thành công." }
   }
+}
+
+if ($Hostname) {
+  # Tunnel tạo bằng đăng nhập Cloudflare (không qua Zero Trust nên không cần thẻ thanh toán).
+  New-Item -ItemType Directory -Force $CfDir | Out-Null
+  Protect-Folder $CfDir
+  $cert = "$env:USERPROFILE\.cloudflared\cert.pem"
+  $cred = "$CfDir\tunnel.json"
+  if (-not (Test-Path $cert)) {
+    Write-Host ""
+    Write-Host "Trình duyệt sẽ mở trang Cloudflare: đăng nhập, bấm vào tên miền $($Hostname -replace '^[^.]+\.', ''), rồi bấm Authorize." -ForegroundColor Yellow
+    Invoke-Native { & $cf tunnel login }
+    if (-not (Test-Path $cert)) { throw "Chưa đăng nhập được Cloudflare. Chạy lại bộ cài và bấm Authorize trên trình duyệt." }
+  }
+  $env:TUNNEL_ORIGIN_CERT = $cert
+  $list = (Invoke-Native { & $cf tunnel list --name $TunnelName --output json 2>$null }) -join ""
+  if ($list -notmatch "`"name`":\s*`"$TunnelName`"") {
+    Invoke-Native { & $cf tunnel create --cred-file $cred $TunnelName }
+    if ($LASTEXITCODE -ne 0) { throw "Tạo tunnel không thành công." }
+  } elseif (-not (Test-Path $cred)) {
+    Invoke-Native { & $cf tunnel token --cred-file $cred $TunnelName }
+    if ($LASTEXITCODE -ne 0) { throw "Lấy khóa tunnel không thành công." }
+  }
+  Invoke-Native { & $cf tunnel route dns --overwrite-dns $TunnelName $Hostname }
+  if ($LASTEXITCODE -ne 0) { throw "Tạo bản ghi DNS cho $Hostname không thành công. Kiểm tra tên miền đã Active trong Cloudflare chưa." }
+  # Chạy theo ID (đọc từ file khóa) để tác vụ nền không cần chứng chỉ đăng nhập cert.pem.
+  $tunnelId = (Get-Content $cred -Raw | ConvertFrom-Json).TunnelID
+  if (-not $tunnelId) { throw "File khóa tunnel $cred không hợp lệ." }
+  Register-StartupTask $TunnelTask $cf "tunnel --no-autoupdate --loglevel warn --logfile `"$Root\tunnel-nhat-ky.txt`" run --cred-file `"$cred`" --url http://localhost:$Port $tunnelId"
+  Write-Host "    Đã kết nối. Địa chỉ cho giáo viên: https://$Hostname (có thể chờ 1-2 phút)."
+} elseif ($Token) {
   if (Get-Service cloudflared -ErrorAction SilentlyContinue) {
-    & $cf service uninstall 2>$null | Out-Null
+    Invoke-Native { & $cf service uninstall 2>$null | Out-Null }
     Start-Sleep -Seconds 2
   }
-  & $cf service install $Token
+  Invoke-Native { & $cf service install $Token }
   if ($LASTEXITCODE -ne 0) { throw "Cài dịch vụ Cloudflare Tunnel không thành công. Kiểm tra lại mã tunnel." }
   Write-Host "    Đã kết nối. Mở bằng tên miền đã khai báo ở Cloudflare (mục Public Hostname)."
 }
