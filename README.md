@@ -46,7 +46,7 @@ Mã nguồn bản giáo viên nằm ở thư mục `pages/`. Mỗi lần đẩy 
 | **Phụ huynh** | Mẫu tin nhắn tự điền tên học sinh, tên lớp, tên giáo viên: báo vắng, khen ngợi, nhắc nhở, tổng kết tuần, thông báo chung. Sao chép rồi dán vào Zalo hoặc SMS. |
 | **Báo cáo** | Tổng hợp **theo tuần hoặc theo tháng**: số buổi, có mặt, vắng có phép/không phép, tỉ lệ chuyên cần, số nhận xét theo 3 mức, số sao của từng em và cả lớp; đánh dấu em cần quan tâm. Nút **Tải Excel**. |
 
-**Ban giám hiệu (Quản trị)** có thêm mục **Quản trị**:
+**Ban giám hiệu (Quản trị)** chỉ làm việc quản trị và theo dõi: chỉ có 2 mục **Tổng hợp** và **Quản trị**, không điểm danh, nhận xét hay sửa học sinh thay giáo viên. Mục **Quản trị** gồm:
 - tạo, sửa, khóa tài khoản giáo viên và đặt lại mật khẩu;
 - tạo lớp (tên lớp, khối, năm học, tên trường) và phân công giáo viên chủ nhiệm;
 - sao lưu và khôi phục toàn bộ dữ liệu;
