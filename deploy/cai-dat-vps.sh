@@ -54,7 +54,8 @@ else
   sudo -u sotay git clone --quiet --branch "$BRANCH" "$REPO" "$APP_DIR"
 fi
 cd "$APP_DIR"
-sudo -u sotay npm ci --omit=dev --no-audit --no-fund
+# better-sqlite3 đã kèm sẵn bản dựng cho Linux/Windows; --ignore-scripts để npm không tự biên dịch lại (VPS thường không có make, g++).
+sudo -u sotay npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 
 echo "==> Cấu hình"
 cat > /etc/so-tay.env <<EOF

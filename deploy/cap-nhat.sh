@@ -24,7 +24,8 @@ echo "==> Lấy mã mới"
 sudo -u sotay git -C "$APP_DIR" fetch --quiet origin "$BRANCH"
 sudo -u sotay git -C "$APP_DIR" reset --quiet --hard "origin/$BRANCH"
 cd "$APP_DIR"
-sudo -u sotay npm ci --omit=dev --no-audit --no-fund
+# better-sqlite3 đã kèm sẵn bản dựng cho Linux/Windows; --ignore-scripts để npm không tự biên dịch lại (VPS thường không có make, g++).
+sudo -u sotay npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 
 echo "==> Khởi động lại"
 systemctl restart so-tay

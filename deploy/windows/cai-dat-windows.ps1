@@ -96,7 +96,8 @@ if ($LASTEXITCODE -ge 8) { throw "Chép mã nguồn không thành công (robocop
 
 Step "Cài thư viện"
 Push-Location $AppDir
-& $npm ci --omit=dev --no-audit --no-fund
+# better-sqlite3 đã kèm sẵn bản dựng cho Windows; --ignore-scripts để npm không tự biên dịch lại.
+& $npm ci --omit=dev --ignore-scripts --no-audit --no-fund
 $npmExit = $LASTEXITCODE
 Pop-Location
 if ($npmExit -ne 0) { throw "npm ci không thành công." }
