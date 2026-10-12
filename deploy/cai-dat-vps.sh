@@ -5,11 +5,14 @@
 #   DOMAIN=sotay.tentruong.edu.vn bash cai-dat-vps.sh
 # Chưa có tên miền: dùng tên miền miễn phí theo địa chỉ IP của VPS, ví dụ 103.20.30.40 → 103-20-30-40.sslip.io
 #   DOMAIN=103-20-30-40.sslip.io bash cai-dat-vps.sh
+# Đổi tên miền: chạy lại với DOMAIN mới; ALIASES liệt kê tên miền cũ (và www) để tự chuyển sang tên miền mới:
+#   DOMAIN=tentruong.vn ALIASES="www.tentruong.vn sotay.tenmiencu.xyz" bash cai-dat-vps.sh
 #
 # Chạy lại nhiều lần không sao: lần sau chỉ cập nhật mã và cấu hình, dữ liệu giữ nguyên.
 set -euo pipefail
 
 DOMAIN="${DOMAIN:-}"
+ALIASES="${ALIASES:-}"
 REPO="${REPO:-https://github.com/Baonguyen191/so-tay-chu-nhiem-so.git}"
 BRANCH="${BRANCH:-main}"
 APP_DIR=/opt/so-tay/app
@@ -97,6 +100,14 @@ $DOMAIN {
   reverse_proxy 127.0.0.1:$PORT
 }
 EOF
+if [[ -n "$ALIASES" ]]; then
+  cat >> /etc/caddy/Caddyfile <<EOF
+
+$(echo "$ALIASES" | tr ', ' '\n\n' | grep -v '^$' | paste -sd, - | sed 's/,/, /g') {
+  redir https://$DOMAIN{uri} permanent
+}
+EOF
+fi
 
 echo "==> Tường lửa: chỉ mở SSH, HTTP, HTTPS"
 if command -v netfilter-persistent >/dev/null && iptables -S INPUT | grep -q -- "-j REJECT"; then
